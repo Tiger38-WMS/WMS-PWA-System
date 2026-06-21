@@ -10,17 +10,17 @@ WMS_UTILS.pageRoot().innerHTML = `
       <div class="panel-head"><h2>Tạo phiếu nhận</h2></div>
       <div class="panel-body">
         <form id="createForm" class="form-grid">
-          <div class="field"><label>PO No</label><input name="PONo" required></div>
-          <div class="field"><label>SupplierCode</label><input name="SupplierCode" required></div>
-          <div class="field"><label>ReceiveDate</label><input name="ReceiveDate" type="date"></div>
-          <div class="field"><label>MaterialCode</label><input name="MaterialCode" required></div>
-          <div class="field"><label>QtyOrdered</label><input name="QtyOrdered" type="number" step="0.001" value="0"></div>
-          <div class="field"><label>QtyReceived</label><input name="QtyReceived" type="number" step="0.001" required></div>
-          <div class="field"><label>UoM</label><input name="UoM"></div>
-          <div class="field"><label>LotNo</label><input name="LotNo" required></div>
-          <div class="field"><label>MFGDate</label><input name="MFGDate" type="date"></div>
-          <div class="field"><label>EXPDate</label><input name="EXPDate" type="date"></div>
-          <div class="field full actions"><button class="btn primary">Tạo phiếu DRAFT</button></div>
+          <div class="field"><label>Số PO</label><input name="PONo" required></div>
+          <div class="field"><label>Mã nhà cung cấp</label><input name="SupplierCode" required></div>
+          <div class="field"><label>Ngày nhận</label><input name="ReceiveDate" type="date"></div>
+          <div class="field"><label>Mã vật tư</label><input name="MaterialCode" required></div>
+          <div class="field"><label>SL đặt</label><input name="QtyOrdered" type="number" step="0.001" value="0"></div>
+          <div class="field"><label>SL nhận</label><input name="QtyReceived" type="number" step="0.001" required></div>
+          <div class="field"><label>Đơn vị tính</label><input name="UoM"></div>
+          <div class="field"><label>Số lot</label><input name="LotNo" required></div>
+          <div class="field"><label>Ngày sản xuất</label><input name="MFGDate" type="date"></div>
+          <div class="field"><label>Hạn dùng</label><input name="EXPDate" type="date"></div>
+          <div class="field full actions"><button class="btn primary">Tạo phiếu nháp</button></div>
         </form>
       </div>
     </section>
@@ -28,7 +28,7 @@ WMS_UTILS.pageRoot().innerHTML = `
       <div class="panel-head"><h2>Xử lý phiếu</h2></div>
       <div class="panel-body">
         <form id="actionForm" class="form-grid">
-          <div class="field full"><label>IBNo</label><input name="IBNo" required></div>
+          <div class="field full"><label>Số phiếu nhận</label><input name="IBNo" required></div>
           <div class="field full actions">
             <button class="btn blue" data-action="confirmInbound">Xác nhận nhận hàng</button>
             <button class="btn primary" data-action="submitToIQC">Gửi IQC</button>
@@ -38,7 +38,7 @@ WMS_UTILS.pageRoot().innerHTML = `
       </div>
     </section>
   </div>
-  <section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu nhận gần đây</h2><button class="btn" id="reloadBtn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>IBNo</th><th>PO</th><th>NCC</th><th>Status</th><th>CreatedBy</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
+  <section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu nhận gần đây</h2><button class="btn" id="reloadBtn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>Số phiếu nhận</th><th>PO</th><th>NCC</th><th>Trạng thái</th><th>Người tạo</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
 
 async function load() {
   WMS_UTILS.loadTable('listInbounds', { status: 'ALL', limit: 50 }, document.getElementById('rows'), r =>
