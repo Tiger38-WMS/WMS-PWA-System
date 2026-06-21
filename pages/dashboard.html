@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Dashboard | WMS PWA</title>
+</head>
+<body>
+  <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+  <script>
+    WMS_UTILS.initAppShell('dashboard.html', 'Dashboard', 'Tổng quan nhanh các luồng kho');
+    WMS_UTILS.pageRoot().innerHTML = `
+      <div class="grid three">
+        <div class="panel metric"><div class="label">Phiếu nhận đang mở</div><div class="value" id="inboundCount">-</div></div>
+        <div class="panel metric"><div class="label">IQC chờ kiểm</div><div class="value" id="iqcCount">-</div></div>
+        <div class="panel metric"><div class="label">Job in đang chờ</div><div class="value" id="printCount">-</div></div>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <div class="panel-head"><h2>Đồng bộ offline</h2><button class="btn primary" id="syncBtn">Đồng bộ ngay</button></div>
+        <div class="panel-body"><p class="muted" id="queueInfo">Đang kiểm tra hàng đợi...</p></div>
+      </div>`;
+
+    async function refresh() {
+      try {
+        const [inb, iqc, prn, queue] = await Promise.all([
+          WMS_API.call('listInbounds', { status: 'DRAFT', limit: 1 }).catch(() => ({ total: 0 })),
+          WMS_API.call('listIQCPending', { limit: 1 }).catch(() => ({ total: 0 })),
+          WMS_API.call('getPrintJobs', { status: 'PENDING', limit: 50 }).catch(() => ({ items: [] })),
+          WMS_DB.listQueue()
+        ]);
+        document.getElementById('inboundCount').textContent = inb.total || 0;
+        document.getElementById('iqcCount').textContent = iqc.total || 0;
+        document.getElementById('printCount').textContent = (prn.items || []).length;
+        document.getElementById('queueInfo').textContent = queue.length ? `${queue.length} thao tác chưa đồng bộ.` : 'Không có thao tác offline đang chờ.';
+      } catch (err) {
+        WMS_UTILS.toast(err.message, 'error');
+      }
+    }
+    document.getElementById('syncBtn').addEventListener('click', event => WMS_UTILS.run(event.currentTarget, async () => {
+      const result = await WMS_API.syncQueue();
+      WMS_UTILS.toast(`Đã đồng bộ ${result.synced} thao tác`, 'ok');
+      refresh();
+    }));
+    refresh();
+  </script>
+</body>
+</html>

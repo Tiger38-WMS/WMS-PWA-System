@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>IQC | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+WMS_UTILS.initAppShell('iqc.html', 'IQC', 'Kiểm phẩm PASS / FAIL / SKIP');
+WMS_UTILS.pageRoot().innerHTML = `
+<div class="grid two">
+  <section class="panel"><div class="panel-head"><h2>Lưu quyết định IQC</h2></div><div class="panel-body">
+    <form id="decisionForm" class="form-grid">
+      <div class="field"><label>IQCNo</label><input name="IQCNo" required></div>
+      <div class="field"><label>LineID</label><input name="LineID"></div>
+      <div class="field"><label>MaterialCode</label><input name="MaterialCode"></div>
+      <div class="field"><label>Decision</label><select name="Decision"><option>PASS</option><option>FAIL</option><option>SKIP</option></select></div>
+      <div class="field"><label>QtyPass</label><input name="QtyPass" type="number" step="0.001" value="0"></div>
+      <div class="field"><label>QtyFail</label><input name="QtyFail" type="number" step="0.001" value="0"></div>
+      <div class="field"><label>QtySkip</label><input name="QtySkip" type="number" step="0.001" value="0"></div>
+      <div class="field full"><label>Remark</label><input name="Remark"></div>
+      <div class="field full actions"><button class="btn primary">Lưu quyết định</button></div>
+    </form>
+  </div></section>
+  <section class="panel"><div class="panel-head"><h2>Đóng / route phiếu</h2></div><div class="panel-body">
+    <form id="actionForm" class="form-grid">
+      <div class="field full"><label>IQCNo</label><input name="IQCNo" required></div>
+      <div class="field full actions">
+        <button class="btn blue" data-action="closeIQC">Đóng IQC</button>
+        <button class="btn primary" data-action="routeToPutaway">Route Putaway</button>
+        <button class="btn warn" data-action="routeToNG">Tổng hợp NG</button>
+      </div>
+    </form>
+  </div></section>
+</div>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu IQC đang chờ</h2><button id="reloadBtn" class="btn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>IQCNo</th><th>IBNo</th><th>Ngày</th><th>Status</th><th>InspectedBy</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
+function load(){ WMS_UTILS.loadTable('listIQCPending', { limit:50 }, document.getElementById('rows'), r => `<tr><td>${WMS_UTILS.escapeHtml(r.iqcNo)}</td><td>${WMS_UTILS.escapeHtml(r.ibNo)}</td><td>${WMS_UTILS.escapeHtml(r.iqcDate)}</td><td>${WMS_UTILS.badge(r.status)}</td><td>${WMS_UTILS.escapeHtml(r.inspectedBy)}</td></tr>`, 5); }
+document.getElementById('decisionForm').addEventListener('submit', e => { e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter, async()=>{ await WMS_API.call('saveIQCDecision', d); WMS_UTILS.toast('Đã lưu quyết định', 'ok'); load(); }); });
+document.getElementById('actionForm').addEventListener('submit', e => e.preventDefault());
+document.getElementById('actionForm').addEventListener('click', e => { if(!e.target.dataset.action)return; const d=WMS_UTILS.formData(document.getElementById('actionForm')); WMS_UTILS.run(e.target, async()=>{ await WMS_API.call(e.target.dataset.action, d); WMS_UTILS.toast('Đã xử lý IQC', 'ok'); load(); }); });
+document.getElementById('reloadBtn').addEventListener('click', load); load();
+</script>
+</body></html>

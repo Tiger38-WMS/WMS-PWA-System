@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Xuất kho | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+WMS_UTILS.initAppShell('outbound.html', 'Xuất kho FIFO', 'Phân bổ lot và xác nhận xuất kho');
+WMS_UTILS.pageRoot().innerHTML = `
+<div class="grid two">
+<section class="panel"><div class="panel-head"><h2>Phân bổ từ đơn đã duyệt</h2></div><div class="panel-body"><form id="allocForm" class="form-grid"><div class="field full"><label>RequestNo</label><input name="RequestNo" required></div><div class="field full actions"><button class="btn primary">Phân bổ FIFO</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Xác nhận phiếu xuất</h2></div><div class="panel-body"><form id="issueForm" class="form-grid"><div class="field full"><label>IssueNo</label><input name="IssueNo" required></div><div class="field full actions"><button class="btn blue" data-action="confirmIssue">Xác nhận xuất</button><button class="btn danger" data-action="voidIssue">Hủy phiếu</button></div></form></div></section>
+</div>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu xuất</h2><button class="btn" id="reloadBtn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>IssueNo</th><th>Source</th><th>Status</th><th>CreatedBy</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
+function load(){ WMS_UTILS.loadTable('listIssues',{status:'ALL',limit:50},document.getElementById('rows'),r=>`<tr><td>${WMS_UTILS.escapeHtml(r.issueNo)}</td><td>${WMS_UTILS.escapeHtml(r.sourceNo)}</td><td>${WMS_UTILS.badge(r.status)}</td><td>${WMS_UTILS.escapeHtml(r.createdBy)}</td></tr>`,4); }
+document.getElementById('allocForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ const res=await WMS_API.call('buildFIFOAllocation',d); WMS_UTILS.toast(`Phiếu xuất: ${res.issueNo}`,'ok'); load(); }); });
+document.getElementById('issueForm').addEventListener('submit',e=>e.preventDefault());
+document.getElementById('issueForm').addEventListener('click',e=>{ if(!e.target.dataset.action)return; const d=WMS_UTILS.formData(document.getElementById('issueForm')); WMS_UTILS.run(e.target,async()=>{ await WMS_API.call(e.target.dataset.action,d); WMS_UTILS.toast('Đã xử lý phiếu xuất','ok'); load(); }); });
+document.getElementById('reloadBtn').addEventListener('click',load); load();
+</script>
+</body></html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./css/app.css">
+  <title>Đăng nhập | WMS PWA</title>
+</head>
+<body class="login-body">
+  <section class="login-card">
+    <div class="brand-mark">W</div>
+    <h1>WMS PWA</h1>
+    <p>Đăng nhập hệ thống quản lý kho.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="userId">User ID</label>
+        <input id="userId" name="userId" autocomplete="username" required>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="password">Mật khẩu</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">Đăng nhập</button>
+      </div>
+      <p class="muted" id="configHint" style="margin-top:14px"></p>
+    </form>
+  </section>
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="./config.js"></script>
+  <script src="./js/db.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/utils.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    const existing = WMS_AUTH.getSession();
+    if (existing && existing.sessionId) location.href = './pages/dashboard.html';
+
+    if (!WMS_CONFIG.GAS_API_URL) {
+      document.getElementById('configHint').textContent = 'Chưa cấu hình GAS_API_URL trong config.js.';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const data = WMS_UTILS.formData(event.currentTarget);
+      WMS_UTILS.run(event.submitter, async () => {
+        await WMS_AUTH.login(data.userId, data.password);
+        location.href = './pages/dashboard.html';
+      });
+    });
+  </script>
+</body>
+</html>
