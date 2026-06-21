@@ -1,7 +1,7 @@
 {
-  "name": "WMS PWA",
-  "short_name": "WMS",
-  "description": "Warehouse Management System PWA",
+  "name": "Quản lý kho WMS",
+  "short_name": "WMS Kho",
+  "description": "Ứng dụng PWA quản lý kho WMS",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f3f4f6",
