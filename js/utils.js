@@ -4,15 +4,15 @@
   }
 
   const navItems = [
-    ['dashboard.html', 'Dashboard', 'DB'],
+    ['dashboard.html', 'Tổng quan', 'DB'],
     ['inbound.html', 'Nhận hàng', 'IN'],
     ['iqc.html', 'IQC', 'QC'],
-    ['putaway.html', 'Putaway', 'PT'],
+    ['putaway.html', 'Nhập vị trí', 'PT'],
     ['request.html', 'Yêu cầu', 'RQ'],
     ['outbound.html', 'Xuất kho', 'OUT'],
     ['inventory.html', 'Tồn kho', 'IV'],
     ['ng.html', 'Kho NG', 'NG'],
-    ['admin.html', 'Admin', 'AD'],
+    ['admin.html', 'Quản trị', 'AD'],
   ];
 
   function initAppShell(activePage, title, subtitle) {
@@ -31,7 +31,7 @@
         <aside class="sidebar">
           <div class="sidebar-brand">
             <div class="sidebar-logo">W</div>
-            <div><div class="sidebar-title">WMS PWA</div><div class="sidebar-sub">Kho vận hành</div></div>
+            <div><div class="sidebar-title">Quản lý kho WMS</div><div class="sidebar-sub">Kho vận hành</div></div>
           </div>
           <nav class="nav">${nav}</nav>
         </aside>
@@ -76,11 +76,32 @@
 
   function badge(status) {
     const s = String(status || '').toUpperCase();
+    const labels = {
+      APPROVED: 'Đã duyệt',
+      AVAILABLE: 'Có sẵn',
+      ALLOCATED: 'Đã phân bổ',
+      CLOSED: 'Đã đóng',
+      CONFIRMED: 'Đã xác nhận',
+      DEPLETED: 'Hết hàng',
+      DONE: 'Hoàn tất',
+      DRAFT: 'Nháp',
+      ERROR: 'Lỗi',
+      FAIL: 'Không đạt',
+      IN_PROGRESS: 'Đang xử lý',
+      PASS: 'Đạt',
+      PENDING: 'Đang chờ',
+      PRINTED: 'Đã in',
+      PRINTING: 'Đang in',
+      REJECTED: 'Từ chối',
+      SKIP: 'Bỏ qua',
+      SUBMITTED: 'Đã gửi',
+      VOIDED: 'Đã hủy',
+    };
     let cls = 'badge';
-    if (['APPROVED', 'CONFIRMED', 'CLOSED', 'DONE', 'AVAILABLE'].includes(s)) cls += ' ok';
-    if (['PENDING', 'DRAFT', 'SUBMITTED', 'ALLOCATED', 'IN_PROGRESS'].includes(s)) cls += ' warn';
-    if (['VOIDED', 'REJECTED', 'ERROR', 'DEPLETED'].includes(s)) cls += ' danger';
-    return `<span class="${cls}">${escapeHtml(s || '-')}</span>`;
+    if (['APPROVED', 'CONFIRMED', 'CLOSED', 'DONE', 'AVAILABLE', 'PASS', 'PRINTED'].includes(s)) cls += ' ok';
+    if (['PENDING', 'DRAFT', 'SUBMITTED', 'ALLOCATED', 'IN_PROGRESS', 'PRINTING', 'SKIP'].includes(s)) cls += ' warn';
+    if (['VOIDED', 'REJECTED', 'ERROR', 'DEPLETED', 'FAIL'].includes(s)) cls += ' danger';
+    return `<span class="${cls}">${escapeHtml(labels[s] || s || '-')}</span>`;
   }
 
   function formData(form) {
