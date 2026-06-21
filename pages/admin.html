@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Admin | WMS</title></head>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Quản trị | WMS</title></head>
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
-WMS_UTILS.initAppShell('admin.html', 'Admin', 'Người dùng, mật khẩu và hàng đợi in');
+WMS_UTILS.initAppShell('admin.html', 'Quản trị', 'Người dùng, mật khẩu và hàng đợi in');
 WMS_UTILS.pageRoot().innerHTML = `
 <div class="grid two">
-<section class="panel"><div class="panel-head"><h2>Đặt lại mật khẩu</h2></div><div class="panel-body"><form id="passForm" class="form-grid"><div class="field"><label>TargetUserID</label><input name="targetUserId" required></div><div class="field"><label>Mật khẩu mới</label><input name="newPassword" type="password" required></div><div class="field actions"><button class="btn primary">Đặt mật khẩu</button></div></form></div></section>
-<section class="panel"><div class="panel-head"><h2>Tạo job in</h2></div><div class="panel-body"><form id="printForm" class="form-grid"><div class="field"><label>DocType</label><input name="DocType" value="TEST"></div><div class="field"><label>RefNo</label><input name="RefNo" required></div><div class="field actions"><button class="btn blue">Enqueue</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Đặt lại mật khẩu</h2></div><div class="panel-body"><form id="passForm" class="form-grid"><div class="field"><label>Mã người dùng cần đổi</label><input name="targetUserId" required></div><div class="field"><label>Mật khẩu mới</label><input name="newPassword" type="password" required></div><div class="field actions"><button class="btn primary">Đặt mật khẩu</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Tạo lệnh in</h2></div><div class="panel-body"><form id="printForm" class="form-grid"><div class="field"><label>Loại tài liệu</label><input name="DocType" value="TEST"></div><div class="field"><label>Số tham chiếu</label><input name="RefNo" required></div><div class="field actions"><button class="btn blue">Thêm vào hàng đợi</button></div></form></div></section>
 </div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Print Queue</h2><button class="btn" id="loadPrintBtn">Tải job</button></div><div class="panel-body table-wrap"><table><thead><tr><th>JobID</th><th>DocType</th><th>RefNo</th><th>Status</th><th>CreatedAt</th></tr></thead><tbody id="printRows"></tbody></table></div></section>`;
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Hàng đợi in</h2><button class="btn" id="loadPrintBtn">Tải lệnh in</button></div><div class="panel-body table-wrap"><table><thead><tr><th>Mã lệnh</th><th>Loại tài liệu</th><th>Số tham chiếu</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody id="printRows"></tbody></table></div></section>`;
 document.getElementById('passForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ await WMS_API.call('adminSetPassword',d); WMS_UTILS.toast('Đã đặt lại mật khẩu','ok'); e.currentTarget.reset(); }); });
-document.getElementById('printForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ await WMS_API.call('enqueuePrint',d); WMS_UTILS.toast('Đã tạo job in','ok'); loadPrint(); }); });
+document.getElementById('printForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ await WMS_API.call('enqueuePrint',d); WMS_UTILS.toast('Đã tạo lệnh in','ok'); loadPrint(); }); });
 function loadPrint(){ WMS_UTILS.loadTable('getPrintJobs',{status:'ALL',limit:50},document.getElementById('printRows'),r=>`<tr><td>${WMS_UTILS.escapeHtml(r.jobId)}</td><td>${WMS_UTILS.escapeHtml(r.docType)}</td><td>${WMS_UTILS.escapeHtml(r.refNo)}</td><td>${WMS_UTILS.badge(r.jobStatus)}</td><td>${WMS_UTILS.escapeHtml(r.createdAt)}</td></tr>`,5); }
 document.getElementById('loadPrintBtn').addEventListener('click',loadPrint); loadPrint();
 </script>
