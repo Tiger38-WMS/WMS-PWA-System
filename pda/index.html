@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>PDA đăng nhập | WMS</title></head>
+<body class="pda-body">
+<main class="pda-shell"><section class="pda-card"><div class="brand-mark">W</div><h1>WMS PDA</h1><p class="muted">Đăng nhập để duyệt đơn chờ phê duyệt.</p><form id="loginForm" class="form-grid" style="grid-template-columns:1fr"><div class="field"><label>Mã người dùng</label><input name="userId" autocomplete="username" required></div><div class="field"><label>Mật khẩu</label><input name="password" type="password" autocomplete="current-password" required></div><button class="btn primary">Đăng nhập PDA</button></form></section><div class="toast-stack" id="toastStack"></div></main>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js');
+if (WMS_AUTH.getSession()) location.href = './approval.html';
+loginForm.addEventListener('submit', e => { e.preventDefault(); const d = WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter, async () => { await WMS_AUTH.login(d.userId, d.password); location.href = './approval.html'; }); });
+</script>
+</body></html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>PDA duyệt đơn | WMS</title></head>
+<body class="pda-body">
+<main class="pda-shell"><section class="pda-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h1 style="margin:0">Duyệt đơn</h1><p class="muted" id="who"></p></div><button class="btn ghost" id="logoutBtn">Đăng xuất</button></div><div id="list" class="pda-list" style="margin-top:16px"></div></section><div class="toast-stack" id="toastStack"></div></main>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+const session = WMS_AUTH.requireAuth();
+if (session) who.textContent = session.user.fullName || session.user.userId;
+logoutBtn.addEventListener('click', () => WMS_AUTH.logout());
+async function load() {
+  const data = await WMS_API.call('listRequests', { status: 'PENDING_APPROVAL', limit: 50 });
+  const items = data.items || [];
+  list.innerHTML = items.length ? items.map(r => `<article class="pda-item"><strong>${U.escapeHtml(r.requestNo)}</strong><span>${U.escapeHtml(r.requestType)} | ${U.escapeHtml(r.deptFrom)} -> ${U.escapeHtml(r.deptTo)}</span><span>${U.badge(r.status)}</span><div class="actions"><button class="btn primary" data-action="approveRequest" data-no="${U.escapeHtml(r.requestNo)}">Duyệt</button><button class="btn danger" data-action="rejectRequest" data-no="${U.escapeHtml(r.requestNo)}">Từ chối</button><button class="btn" data-action="detail" data-no="${U.escapeHtml(r.requestNo)}">Chi tiết</button></div></article>`).join('') : '<p class="muted">Không có đơn chờ duyệt.</p>';
+}
+list.addEventListener('click', e => { const action = e.target.dataset.action; if (!action) return; const requestNo = e.target.dataset.no; U.run(e.target, async () => { if (action === 'detail') { const d = await WMS_API.call('getRequest', { requestNo }); alert(JSON.stringify(d, null, 2)); return; } const payload = { requestNo }; if (action === 'rejectRequest') payload.reason = prompt('Nhập lý do từ chối') || ''; await WMS_API.call(action, payload); U.toast('Đã xử lý đơn', 'ok'); load(); }); });
+load();
+</script>
+</body></html>
