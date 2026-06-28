@@ -14,7 +14,16 @@
   function getSession() {
     const raw = localStorage.getItem(cfg().SESSION_KEY || 'wms.session.v1');
     if (!raw) return null;
-    try { return JSON.parse(raw); } catch (e) { return null; }
+    try {
+      const session = JSON.parse(raw);
+      if (isExpired(session)) {
+        clearSession();
+        return null;
+      }
+      return session;
+    } catch (e) {
+      return null;
+    }
   }
 
   function setSession(session) {
@@ -23,6 +32,18 @@
 
   function clearSession() {
     localStorage.removeItem(cfg().SESSION_KEY || 'wms.session.v1');
+  }
+
+  function parseExpiry(value) {
+    if (!value) return null;
+    const normalized = String(value).replace(' ', 'T');
+    const time = Date.parse(normalized);
+    return Number.isFinite(time) ? time : null;
+  }
+
+  function isExpired(session) {
+    const expiresAt = parseExpiry(session && session.expiresAt);
+    return expiresAt ? Date.now() > expiresAt : false;
   }
 
   async function login(userId, password) {
@@ -59,5 +80,5 @@
     return session;
   }
 
-  window.WMS_AUTH = { getDeviceId, getSession, setSession, clearSession, login, logout, requireAuth };
+  window.WMS_AUTH = { getDeviceId, getSession, setSession, clearSession, isExpired, login, logout, requireAuth };
 })();
