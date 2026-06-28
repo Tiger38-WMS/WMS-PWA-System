@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Báo cáo | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('report.html', 'Báo cáo', 'Nhập xuất tồn, IQC, FIFO aging, thu mua và kiểm kê');
+U.pageRoot().innerHTML = `
+<section class="panel"><div class="panel-head"><h2>Bộ lọc báo cáo</h2><button class="btn primary" id="runBtn">Chạy báo cáo</button></div><div class="panel-body"><form id="reportForm" class="form-grid"><div class="field"><label>Loại báo cáo</label><select name="type"><option value="rptInboundOutbound">Nhập xuất tồn</option><option value="rptIQC">IQC</option><option value="rptFIFO">FIFO aging</option><option value="rptPurchase">Thu mua</option><option value="rptStocktake">Kiểm kê</option></select></div><div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div><div class="field"><label>Đến ngày</label><input name="dateTo" type="date"></div><div class="field"><label>Mã vật tư / NCC / Số đợt</label><input name="search"></div><div class="field"><label>Category</label><input name="category"></div></form></div></section>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Kết quả</h2></div><div class="panel-body" id="resultBox"><p class="muted">Chọn loại báo cáo và bấm chạy.</p></div></section>`;
+runBtn.addEventListener('click', e => U.run(e.currentTarget, async () => {
+  const d = U.formData(reportForm);
+  const action = d.type;
+  delete d.type;
+  if (action === 'rptStocktake' && d.search) d.stocktakeNo = d.search;
+  if (action === 'rptPurchase' && d.search) d.supplierCode = d.search;
+  if (action === 'rptInboundOutbound' && d.search) d.materialCode = d.search;
+  const data = await WMS_API.call(action, d);
+  const summary = data.summary || data.agingSummary || data.items || data.lines || [];
+  if (Array.isArray(summary)) {
+    resultBox.innerHTML = U.table(Object.keys(summary[0] || { info: 'Kết quả' }), summary.map(row => `<tr>${Object.keys(summary[0] || row).map(k => `<td>${typeof row[k] === 'object' ? U.escapeHtml(JSON.stringify(row[k])) : U.escapeHtml(row[k])}</td>`).join('')}</tr>`), 'Không có dữ liệu') + U.jsonBlock(data);
+  } else {
+    resultBox.innerHTML = U.jsonBlock(data);
+  }
+}));
+</script>
+</body></html>
