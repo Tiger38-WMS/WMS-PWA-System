@@ -10,10 +10,7 @@
       label: 'Thu mua',
       icon: 'PO',
       children: [
-        { page: 'po.html#list', label: 'Danh sách PO' },
-        { page: 'po.html#create', label: 'Nhập PO mới' },
-        { page: 'po.html#detail', label: 'Chi tiết PO' },
-        { page: 'po.html#progress', label: 'Theo dõi tiến độ' },
+        { page: 'po.html#manage', label: 'Quản lý thu mua' },
         { page: 'report.html#purchase', label: 'Báo cáo Thu mua' },
       ],
     },
@@ -66,8 +63,8 @@
       label: 'Quản lý tồn kho',
       icon: 'IV',
       children: [
-        { page: 'inventory.html#balance', label: 'Tổng quan tồn kho' },
-        { page: 'inventory.html#history', label: 'Lịch sử giao dịch' },
+        { page: 'inventory.html#overview', label: 'Tổng quan tồn kho' },
+        { page: 'inventory-history.html', label: 'Lịch sử giao dịch' },
       ],
     },
     { page: 'ng.html', label: 'Kho NG', icon: 'NG' },
