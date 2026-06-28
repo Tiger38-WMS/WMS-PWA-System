@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Quản lý vị trí | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('location.html', 'Quản lý vị trí', 'Sơ đồ kho, khóa/mở khóa vị trí và di chuyển hàng');
+U.pageRoot().innerHTML = `
+<div class="grid two">
+<section class="panel"><div class="panel-head"><h2>Thêm vị trí</h2></div><div class="panel-body"><form id="createForm" class="form-grid"><div class="field"><label>Mã kho</label><input name="warehouseCode" value="WH-MAIN" required></div><div class="field"><label>Khu</label><input name="zone" required></div><div class="field"><label>Dãy</label><input name="aisle" required></div><div class="field"><label>Kệ</label><input name="rack" required></div><div class="field"><label>Tầng</label><input name="level" required></div><div class="field"><label>Sức chứa</label><input name="capacity" type="number"></div><div class="field full actions"><button class="btn primary">Tạo vị trí</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Khóa / mở khóa</h2></div><div class="panel-body"><form id="lockForm" class="form-grid"><div class="field"><label>Mã vị trí</label><input name="locationCode" required></div><div class="field"><label>Lý do khóa</label><input name="reason"></div><div class="field full actions"><button class="btn warn" data-action="blockLocation">Khóa vị trí</button><button class="btn blue" data-action="unblockLocation">Mở khóa</button></div></form></div></section>
+</div>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Di chuyển / tách lot</h2></div><div class="panel-body"><form id="moveForm" class="form-grid"><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Số lot</label><input name="lotNo" required></div><div class="field"><label>Vị trí đi</label><input name="fromLocationCode" required></div><div class="field"><label>Vị trí đến</label><input name="toLocationCode" required></div><div class="field"><label>Số lượng tách</label><input name="qty" type="number" step="0.001"></div><div class="field full actions"><button class="btn primary" data-action="moveStock">Chuyển toàn bộ</button><button class="btn warn" data-action="splitLot">Tách một phần</button></div></form></div></section>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Danh sách vị trí</h2><button class="btn primary" id="loadBtn">Tải vị trí</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Mã kho</label><input id="warehouseFilter" value="WH-MAIN"></div><div class="field"><label>Trạng thái</label><select id="statusFilter"><option value="">Tất cả</option><option>EMPTY</option><option>OCCUPIED</option><option>BLOCKED</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
+createForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const res = await WMS_API.call('createLocation', U.formData(e.currentTarget)); U.toast('Đã tạo ' + res.locationCode, 'ok'); e.currentTarget.reset(); load(); }); });
+lockForm.addEventListener('submit', e => e.preventDefault());
+lockForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { await WMS_API.call(e.target.dataset.action, U.formData(lockForm)); U.toast('Đã cập nhật vị trí', 'ok'); load(); }); });
+moveForm.addEventListener('submit', e => e.preventDefault());
+moveForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { const d = U.formData(moveForm); if (e.target.dataset.action === 'moveStock') delete d.qty; await WMS_API.call(e.target.dataset.action, d); U.toast('Đã xử lý di chuyển', 'ok'); load(); }); });
+async function load() {
+  const data = await WMS_API.call('getLocations', { warehouseCode: warehouseFilter.value, status: statusFilter.value, search: searchFilter.value, limit: 200 });
+  rows.innerHTML = U.table(['Vị trí','Kho','Khu','Dãy','Kệ','Tầng','Trạng thái','Sức chứa'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(U.field(r,['locationCode','LocationCode']))}</td><td>${U.escapeHtml(U.field(r,['warehouseCode','WarehouseCode']))}</td><td>${U.escapeHtml(U.field(r,['zone','Zone']))}</td><td>${U.escapeHtml(U.field(r,['aisle','Aisle']))}</td><td>${U.escapeHtml(U.field(r,['rack','Rack']))}</td><td>${U.escapeHtml(U.field(r,['level','Level']))}</td><td>${U.badge(U.field(r,['status','Status']))}</td><td>${U.escapeHtml(U.field(r,['capacity','Capacity']))}</td></tr>`), 'Chưa có vị trí');
+}
+loadBtn.addEventListener('click', () => U.run(loadBtn, load));
+load();
+</script>
+</body></html>
