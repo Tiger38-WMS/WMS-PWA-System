@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wms-pwa-v9';
+const CACHE_NAME = 'wms-pwa-v10';
 const APP_SHELL = [
   './',
   './index.html',
