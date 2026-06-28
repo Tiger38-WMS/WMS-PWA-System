@@ -1,25 +1,74 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Nhập vị trí | WMS</title></head>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Nhập kho | WMS</title></head>
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
 const U = WMS_UTILS;
-U.initAppShell('putaway.html', 'Nhập vị trí', 'Hai luồng IQC_PASS và ORDER_IN, chọn vị trí trước khi nhập kho');
-U.pageRoot().innerHTML = `
-<div class="grid two">
-<section class="panel"><div class="panel-head"><h2>Cập nhật dòng nhập vị trí</h2></div><div class="panel-body"><form id="lineForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="putawayNo" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Số lot</label><input name="lotNo" required></div><div class="field"><label>Vị trí nhập</label><input name="toLocationCode" required></div><div class="field"><label>Số lượng</label><input name="qty" type="number" step="0.001"></div><div class="field full actions"><button class="btn primary">Lưu vị trí</button><button class="btn blue" type="button" id="suggestBtn">Gợi ý vị trí</button></div></form><div id="suggestions" class="muted"></div></div></section>
-<section class="panel"><div class="panel-head"><h2>Thao tác phiếu</h2></div><div class="panel-body"><form id="actionForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="putawayNo" required></div><div class="field full actions"><button class="btn primary" data-action="confirmPutaway">Xác nhận nhập kho</button><button class="btn danger" data-action="voidPutaway">Hủy phiếu</button><button class="btn" data-action="getPutaway">Xem chi tiết</button></div></form><div id="detailBox" style="margin-top:14px"></div></div></section>
-</div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu chờ nhập vị trí</h2><button class="btn primary" id="reloadBtn">Tải lại</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Nguồn</label><select id="sourceType"><option>ALL</option><option>IQC_PASS</option><option>ORDER_IN</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
-lineForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('savePutawayLine', U.formData(e.currentTarget)); U.toast('Đã lưu vị trí', 'ok'); load(); }); });
-suggestBtn.addEventListener('click', e => U.run(e.currentTarget, async () => { const d = U.formData(lineForm); const res = await WMS_API.call('suggestLocation', { materialCode: d.materialCode }); suggestions.innerHTML = U.table(['Vị trí','Kho','Trạng thái','Ưu tiên'], (res.suggestions || []).map(x => `<tr><td>${U.escapeHtml(x.locationCode)}</td><td>${U.escapeHtml(x.warehouseCode)}</td><td>${U.badge(x.status)}</td><td>${U.escapeHtml(x.priority)}</td></tr>`), res.note || 'Không có gợi ý'); }));
-actionForm.addEventListener('submit', e => e.preventDefault());
-actionForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { const d = U.formData(actionForm); if (e.target.dataset.action === 'getPutaway') { const data = await WMS_API.call('getPutaway', d); detailBox.innerHTML = U.jsonBlock(data); return; } await WMS_API.call(e.target.dataset.action, d); U.toast('Đã xử lý phiếu nhập vị trí', 'ok'); load(); }); });
-async function load() {
-  const data = await WMS_API.call('listPutawayPending', { sourceType: sourceType.value, search: searchFilter.value, limit: 100 });
-  rows.innerHTML = U.table(['Số phiếu','Nguồn','Số nguồn','Ngày','Trạng thái','Dòng','Đã có vị trí','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.putawayNo)}</td><td>${U.escapeHtml(r.sourceType)}</td><td>${U.escapeHtml(r.sourceNo)}</td><td>${U.escapeHtml(r.putawayDate)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml(r.lineCount)}</td><td>${U.escapeHtml(r.readyCount)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Không có phiếu chờ nhập vị trí');
+const isHistory = window.location.hash === '#history';
+U.initAppShell('putaway.html', isHistory ? 'Lịch sử nhập kho' : 'Nhập kho', '');
+
+function renderPendingPage() {
+  U.pageRoot().innerHTML = `
+  <div class="grid two">
+    <section class="panel"><div class="panel-head"><h2>Cập nhật dòng nhập kho</h2></div><div class="panel-body"><form id="lineForm" class="form-grid"><div class="field"><label>Số phiếu nhập kho</label><input name="putawayNo" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Số lot</label><input name="lotNo" required></div><div class="field"><label>Vị trí nhập</label><input name="toLocationCode" required></div><div class="field"><label>Số lượng</label><input name="qty" type="number" step="0.001"></div><div class="field full actions"><button class="btn primary">Lưu vị trí</button><button class="btn blue" type="button" id="suggestBtn">Gợi ý vị trí</button></div></form><div id="suggestions" class="muted"></div></div></section>
+    <section class="panel"><div class="panel-head"><h2>Thao tác phiếu</h2></div><div class="panel-body"><form id="actionForm" class="form-grid"><div class="field"><label>Số phiếu nhập kho</label><input name="putawayNo" required></div><div class="field full actions"><button class="btn primary" data-action="confirmPutaway">Xác nhận nhập kho</button><button class="btn danger" data-action="voidPutaway">Hủy phiếu</button><button class="btn" data-action="getPutaway">Xem chi tiết</button></div></form><div id="detailBox" style="margin-top:12px"></div></div></section>
+  </div>
+  <section class="panel" style="margin-top:12px"><div class="panel-head"><h2>Phiếu chờ nhập kho</h2><button class="btn primary" id="reloadBtn">Tải lại</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Nguồn</label><select id="sourceType"><option>ALL</option><option>IQC_PASS</option><option>ORDER_IN</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
+
+  async function load() {
+    const data = await WMS_API.call('listPutawayPending', { sourceType: sourceType.value, search: searchFilter.value, limit: 80 }, { cacheTtlMs: 12000 });
+    rows.innerHTML = U.table(['Số phiếu','Nguồn','Số nguồn','Ngày','Trạng thái','Dòng','Đã có vị trí','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.putawayNo)}</td><td>${U.escapeHtml(r.sourceType)}</td><td>${U.escapeHtml(r.sourceNo)}</td><td>${U.escapeHtml(r.putawayDate)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml(r.lineCount)}</td><td>${U.escapeHtml(r.readyCount)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Không có phiếu chờ nhập kho');
+  }
+
+  lineForm.addEventListener('submit', event => { event.preventDefault(); U.run(event.submitter, async () => { await WMS_API.call('savePutawayLine', U.formData(event.currentTarget)); U.toast('Đã lưu vị trí', 'ok'); await load(); }); });
+  suggestBtn.addEventListener('click', event => U.run(event.currentTarget, async () => { const data = U.formData(lineForm); const res = await WMS_API.call('suggestLocation', { materialCode: data.materialCode }, { cacheTtlMs: 15000 }); suggestions.innerHTML = U.table(['Vị trí','Kho','Trạng thái','Ưu tiên'], (res.suggestions || []).map(x => `<tr><td>${U.escapeHtml(x.locationCode)}</td><td>${U.escapeHtml(x.warehouseCode)}</td><td>${U.badge(x.status)}</td><td>${U.escapeHtml(x.priority)}</td></tr>`), res.note || 'Không có gợi ý'); }));
+  actionForm.addEventListener('submit', event => event.preventDefault());
+  actionForm.addEventListener('click', event => { if (!event.target.dataset.action) return; U.run(event.target, async () => { const data = U.formData(actionForm); if (event.target.dataset.action === 'getPutaway') { const detail = await WMS_API.call('getPutaway', data, { cacheTtlMs: 10000 }); detailBox.innerHTML = U.jsonBlock(detail); return; } await WMS_API.call(event.target.dataset.action, data); U.toast('Đã xử lý phiếu nhập kho', 'ok'); await load(); }); });
+  reloadBtn.addEventListener('click', () => U.run(reloadBtn, load));
+  rows.innerHTML = '<div class="empty">Bấm "Tải lại" để xem phiếu chờ nhập kho.</div>';
 }
-reloadBtn.addEventListener('click', () => U.run(reloadBtn, load));
-load();
+
+function renderHistoryPage() {
+  U.pageRoot().innerHTML = `
+  <section class="panel">
+    <div class="panel-head"><h2>Lịch sử nhập kho</h2><button class="btn primary" id="historyBtn">Tải lịch sử</button></div>
+    <div class="panel-body">
+      <form id="historyForm" class="form-grid">
+        <div class="field"><label>Số phiếu / số nguồn</label><input name="search" autocomplete="off"></div>
+        <div class="field"><label>Mã vật tư</label><input name="materialCode" autocomplete="off"></div>
+        <div class="field"><label>Nguồn</label><select name="sourceType"><option>ALL</option><option>IQC_PASS</option><option>ORDER_IN</option></select></div>
+        <div class="field"><label>Người tạo</label><input name="createdBy" autocomplete="off"></div>
+        <div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div>
+        <div class="field"><label>Đến ngày</label><input name="dateTo" type="date"></div>
+      </form>
+      <div id="historyRows" style="margin-top:12px"></div>
+      <div id="historyDetail" style="margin-top:12px"></div>
+    </div>
+  </section>`;
+
+  async function loadHistory() {
+    const payload = U.formData(historyForm);
+    payload.limit = 120;
+    const data = await WMS_API.call('listPutawayHistory', payload, { cacheTtlMs: 15000 });
+    historyRows.innerHTML = U.table(
+      ['Số phiếu', 'Nguồn', 'Số nguồn', 'Ngày', 'Dòng', 'Tổng SL', 'Người tạo', 'Chi tiết'],
+      (data.items || []).map(row => `<tr><td>${U.escapeHtml(row.putawayNo)}</td><td>${U.escapeHtml(row.sourceType)}</td><td>${U.escapeHtml(row.sourceNo)}</td><td>${U.escapeHtml(row.putawayDate)}</td><td>${U.escapeHtml(row.lineCount)}</td><td>${U.money(row.totalQty)}</td><td>${U.escapeHtml(row.createdBy)}</td><td><button class="btn" data-putaway="${U.escapeHtml(row.putawayNo)}">Xem</button></td></tr>`),
+      'Chưa có lịch sử nhập kho'
+    );
+  }
+
+  historyRows.addEventListener('click', event => {
+    if (!event.target.dataset.putaway) return;
+    U.run(event.target, async () => {
+      const detail = await WMS_API.call('getPutaway', { putawayNo: event.target.dataset.putaway }, { cacheTtlMs: 10000 });
+      historyDetail.innerHTML = `<section class="panel"><div class="panel-head"><h2>Chi tiết ${U.escapeHtml(event.target.dataset.putaway)}</h2></div><div class="panel-body">${U.table(['Mã vật tư','Lot','Vị trí','SL','ĐVT','Tên VN'], (detail.lines || []).map(line => `<tr><td>${U.escapeHtml(line.materialCode)}</td><td>${U.escapeHtml(line.lotNo)}</td><td>${U.escapeHtml(line.toLocationCode)}</td><td>${U.money(line.qty)}</td><td>${U.escapeHtml(line.uom)}</td><td>${U.escapeHtml(line.vietnameseName)}</td></tr>`), 'Không có dòng chi tiết')}</div></section>`;
+    });
+  });
+  historyForm.addEventListener('submit', event => { event.preventDefault(); U.run(historyBtn, loadHistory); });
+  historyBtn.addEventListener('click', event => U.run(event.currentTarget, loadHistory));
+  historyRows.innerHTML = '<div class="empty">Nhập điều kiện và bấm "Tải lịch sử" để xem phiếu đã nhập kho.</div>';
+}
+
+if (isHistory) renderHistoryPage(); else renderPendingPage();
 </script>
 </body></html>
