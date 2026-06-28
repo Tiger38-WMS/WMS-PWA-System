@@ -19,17 +19,14 @@ U.pageRoot().innerHTML = `
 </div>`;
 async function refresh() {
   try {
-    const [po, iqc, req, iss, queue] = await Promise.all([
-      WMS_API.call('listPO', { status: 'OPEN', limit: 1 }).catch(() => ({ total: 0 })),
-      WMS_API.call('listIQCPending', { limit: 1 }).catch(() => ({ total: 0 })),
-      WMS_API.call('listRequests', { status: 'PENDING_APPROVAL', limit: 1 }).catch(() => ({ total: 0 })),
-      WMS_API.call('listIssuePending', { status: 'ALL', limit: 1 }).catch(() => ({ total: 0 })),
+    const [summary, queue] = await Promise.all([
+      WMS_API.call('getDashboardSummary', {}, { cacheTtlMs: 30000 }).catch(() => null),
       WMS_DB.listQueue()
     ]);
-    poCount.textContent = po.total || 0;
-    iqcCount.textContent = iqc.total || 0;
-    requestCount.textContent = req.total || 0;
-    issueCount.textContent = iss.total || 0;
+    poCount.textContent = summary ? summary.poOpen || 0 : 0;
+    iqcCount.textContent = summary ? summary.iqcPending || 0 : 0;
+    requestCount.textContent = summary ? summary.requestPending || 0 : 0;
+    issueCount.textContent = summary ? summary.issuePending || 0 : 0;
     queueInfo.textContent = queue.length ? `${queue.length} thao tác chưa đồng bộ.` : 'Không có thao tác ngoại tuyến đang chờ.';
   } catch (err) { U.toast(err.message, 'error'); }
 }
