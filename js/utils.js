@@ -32,7 +32,6 @@
       children: [
         { page: 'iqc.html#overview', label: 'Tổng quan IQC' },
         { page: 'iqc.html#pending', label: 'Danh sách chờ IQC' },
-        { page: 'iqc.html#inspect', label: 'Thực hiện kiểm' },
         { page: 'iqc.html#history', label: 'Lịch sử IQC' },
         { page: 'report.html#iqc', label: 'Báo cáo IQC' },
       ],
@@ -53,7 +52,6 @@
       icon: 'OUT',
       children: [
         { page: 'outbound.html#pending', label: 'Danh sách phiếu xuất' },
-        { page: 'outbound.html#void', label: 'Hủy phiếu xuất kho' },
         { page: 'outbound.html#history', label: 'Lịch sử xuất kho' },
         { page: 'outbound.html#print', label: 'In phiếu xuất kho' },
       ],
@@ -164,7 +162,7 @@
         </aside>
         <main class="main">
           <div class="topbar">
-            <div class="page-title"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle || '')}</p></div>
+            <div class="page-title"><h1>${escapeHtml(title)}</h1></div>
             <div class="user-chip">
               <span>${escapeHtml(session.user.fullName || session.user.userId)}</span>
               <button class="btn ghost" id="logoutBtn">Đăng xuất</button>
@@ -179,8 +177,16 @@
     document.querySelectorAll('.nav-parent').forEach(button => {
       button.addEventListener('click', () => {
         const group = button.closest('.nav-group');
-        const isOpen = group.classList.toggle('open');
-        button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        const shouldOpen = !group.classList.contains('open');
+        document.querySelectorAll('.nav-group.open').forEach(openGroup => {
+          if (openGroup !== group) {
+            openGroup.classList.remove('open');
+            const openButton = openGroup.querySelector('.nav-parent');
+            if (openButton) openButton.setAttribute('aria-expanded', 'false');
+          }
+        });
+        group.classList.toggle('open', shouldOpen);
+        button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
       });
     });
   }
