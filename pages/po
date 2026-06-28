@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Thu mua | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('po.html', 'Thu mua', 'Quản lý PO, tiến độ nhận hàng và PO quá hạn');
+U.pageRoot().innerHTML = `
+<div class="tabs"><button class="tab-btn active" data-tab="list">Danh sách PO</button><button class="tab-btn" data-tab="create">Tạo PO</button><button class="tab-btn" data-tab="line">Dòng PO</button><button class="tab-btn" data-tab="detail">Chi tiết / tiến độ</button></div>
+<section class="panel" id="tab-list"><div class="panel-head"><h2>Danh sách PO</h2><button class="btn primary" id="loadBtn">Tải dữ liệu</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Trạng thái</label><select id="poStatus"><option>ALL</option><option>DRAFT</option><option>OPEN</option><option>PARTIAL</option><option>RECEIVED</option><option>CLOSED</option><option>CANCELLED</option></select></div><div class="field"><label>Tìm PO</label><input id="poSearch"></div><label class="field"><span>Chỉ quá hạn</span><select id="overdueOnly"><option value="">Không</option><option value="1">Có</option></select></label></div><div id="poRows"></div></div></section>
+<section class="panel hidden" id="tab-create"><div class="panel-head"><h2>Tạo PO mới</h2></div><div class="panel-body"><form id="createForm" class="form-grid"><div class="field"><label>Mã nhà cung cấp</label><input name="supplierCode" required></div><div class="field"><label>Ngày PO</label><input name="poDate" type="date"></div><div class="field"><label>Ngày dự kiến</label><input name="expectedDate" type="date"></div><div class="field"><label>Điều khoản thanh toán</label><input name="paymentTerm"></div><div class="field full"><label>Ghi chú</label><input name="note"></div><div class="field full actions"><button class="btn primary">Tạo PO nháp</button></div></form></div></section>
+<section class="panel hidden" id="tab-line"><div class="panel-head"><h2>Thêm / sửa dòng PO</h2></div><div class="panel-body"><form id="lineForm" class="form-grid"><div class="field"><label>Số PO</label><input name="poNo" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>SL đặt</label><input name="qtyOrdered" type="number" step="0.001" required></div><div class="field"><label>Đơn vị tính</label><input name="uom"></div><div class="field"><label>Đơn giá</label><input name="unitPrice" type="number" step="0.001"></div><div class="field full actions"><button class="btn primary">Lưu dòng PO</button><button class="btn blue" type="button" id="confirmBtn">Xác nhận PO</button><button class="btn warn" type="button" id="closeBtn">Đóng PO</button><button class="btn danger" type="button" id="cancelBtn">Hủy PO</button></div></form></div></section>
+<section class="panel hidden" id="tab-detail"><div class="panel-head"><h2>Chi tiết PO</h2><button class="btn" id="detailBtn">Xem</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Số PO</label><input id="detailPONo"></div></div><div id="detailBox" class="grid two"></div></div></section>`;
+
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('[id^="tab-"]').forEach(x => x.classList.add('hidden'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+}));
+
+async function loadPO() {
+  const payload = { status: poStatus.value, search: poSearch.value, limit: 100 };
+  if (overdueOnly.value) payload.overdueOnly = true;
+  const data = await WMS_API.call('listPO', payload);
+  poRows.innerHTML = U.table(['PO', 'NCC', 'Ngày PO', 'Ngày dự kiến', 'Trạng thái', 'Người tạo'],
+    (data.items || []).map(r => `<tr><td>${U.escapeHtml(U.field(r,'poNo'))}</td><td>${U.escapeHtml(U.field(r,'supplierCode'))}</td><td>${U.escapeHtml(U.field(r,'poDate'))}</td><td>${U.escapeHtml(U.field(r,'expectedDate'))}</td><td>${U.badge(U.field(r,'status'))}</td><td>${U.escapeHtml(U.field(r,'createdBy'))}</td></tr>`),
+    'Chưa có PO');
+}
+loadBtn.addEventListener('click', () => U.run(loadBtn, loadPO));
+createForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const res = await WMS_API.call('createPO', U.formData(e.currentTarget)); U.toast('Đã tạo ' + res.poNo, 'ok'); detailPONo.value = res.poNo; e.currentTarget.reset(); loadPO(); }); });
+lineForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('savePOLine', U.formData(e.currentTarget)); U.toast('Đã lưu dòng PO', 'ok'); }); });
+function poAction(action, button) { const poNo = lineForm.poNo.value || detailPONo.value; U.run(button, async () => { await WMS_API.call(action, { poNo }); U.toast('Đã xử lý PO', 'ok'); loadPO(); }); }
+confirmBtn.addEventListener('click', e => poAction('confirmPO', e.currentTarget));
+closeBtn.addEventListener('click', e => poAction('closePO', e.currentTarget));
+cancelBtn.addEventListener('click', e => poAction('cancelPO', e.currentTarget));
+detailBtn.addEventListener('click', e => U.run(e.currentTarget, async () => {
+  const poNo = detailPONo.value.trim();
+  const [detail, progress] = await Promise.all([WMS_API.call('getPOByNo', { poNo }), WMS_API.call('getPOProgress', { poNo }).catch(() => null)]);
+  detailBox.innerHTML = `<div>${U.table(['Mã vật tư','SL đặt','SL nhận','ĐVT','Trạng thái'], (detail.lines || []).map(l => `<tr><td>${U.escapeHtml(l.materialCode)}</td><td>${U.money(l.qtyOrdered)}</td><td>${U.money(l.qtyReceived)}</td><td>${U.escapeHtml(l.uom)}</td><td>${U.badge(l.lineStatus)}</td></tr>`), 'Chưa có dòng')}</div><div>${U.jsonBlock(progress || detail.summary)}</div>`;
+}));
+loadPO();
+</script>
+</body></html>
