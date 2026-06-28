@@ -15,7 +15,8 @@
 <script src="../js/utils.js"></script>
 <script>
 const U = WMS_UTILS;
-U.initAppShell('inventory.html', 'Tổng quan tồn kho', 'Bảng tồn kho 18 cột, kèm thao tác thêm vật tư');
+U.initAppShell('inventory.html', 'Tổng quan tồn kho', '');
+document.body.classList.add('inventory-page');
 
 const columns = [
   ['Ordinal', 'ordinal'],
@@ -46,14 +47,13 @@ U.pageRoot().innerHTML = `
 <section class="panel">
   <div id="tab-overview">
   <div class="panel-head">
-    <h2>Tổng quan tồn kho</h2>
     <div class="actions">
       <button class="btn" id="recalcBtn" type="button">Tính lại tồn</button>
       <button class="btn primary" id="searchBtn" type="button">Tải bảng</button>
     </div>
   </div>
   <div class="panel-body">
-    <form id="filterForm" class="form-grid">
+    <form id="filterForm" class="form-grid inventory-filter">
       <div class="field"><label>Tìm mã / tên / nhà cung cấp</label><input name="search" autocomplete="off"></div>
       <div class="field"><label>Category</label><input name="category" autocomplete="off"></div>
       <div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div>
@@ -61,7 +61,6 @@ U.pageRoot().innerHTML = `
       <div class="field"><label>Trạng thái vật tư</label><select name="activeMode"><option value="active">Đang dùng</option><option value="all">Tất cả</option></select></div>
       <div class="field"><label>Cảnh báo tồn</label><select name="alertOnly"><option value="">Tất cả</option><option value="1">Chỉ thấp / hết tồn</option></select></div>
     </form>
-    <div id="summary" class="toolbar muted"></div>
     <div id="rows"></div>
   </div>
 </div>
@@ -119,7 +118,6 @@ function renderCell(row, column) {
 
 function render(data) {
   const items = data.items || [];
-  summary.textContent = `Hiển thị ${items.length} dòng. BeginningInventory, TotalInbound, TotalOutbound và StockOnHand do GAS tính từ Stock_Txn theo kỳ lọc.`;
   const headers = columns.map(([label]) => `<th>${U.escapeHtml(label)}</th>`).join('');
   const body = items.length
     ? items.map(row => `<tr>${columns.map(col => renderCell(row, col)).join('')}</tr>`).join('')
