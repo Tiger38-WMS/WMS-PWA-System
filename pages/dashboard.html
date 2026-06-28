@@ -1,49 +1,39 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="../manifest.json">
-  <link rel="stylesheet" href="../css/app.css">
-  <title>Tổng quan | Quản lý kho WMS</title>
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Tổng quan | Quản lý kho WMS</title></head>
 <body>
-  <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
-  <script>
-    WMS_UTILS.initAppShell('dashboard.html', 'Tổng quan', 'Tổng quan nhanh các luồng kho');
-    WMS_UTILS.pageRoot().innerHTML = `
-      <div class="grid three">
-        <div class="panel metric"><div class="label">Phiếu nhận đang mở</div><div class="value" id="inboundCount">-</div></div>
-        <div class="panel metric"><div class="label">IQC chờ kiểm</div><div class="value" id="iqcCount">-</div></div>
-        <div class="panel metric"><div class="label">Lệnh in đang chờ</div><div class="value" id="printCount">-</div></div>
-      </div>
-      <div class="panel" style="margin-top:14px">
-        <div class="panel-head"><h2>Đồng bộ ngoại tuyến</h2><button class="btn primary" id="syncBtn">Đồng bộ ngay</button></div>
-        <div class="panel-body"><p class="muted" id="queueInfo">Đang kiểm tra hàng đợi...</p></div>
-      </div>`;
-
-    async function refresh() {
-      try {
-        const [inb, iqc, prn, queue] = await Promise.all([
-          WMS_API.call('listInbounds', { status: 'DRAFT', limit: 1 }).catch(() => ({ total: 0 })),
-          WMS_API.call('listIQCPending', { limit: 1 }).catch(() => ({ total: 0 })),
-          WMS_API.call('getPrintJobs', { status: 'PENDING', limit: 50 }).catch(() => ({ items: [] })),
-          WMS_DB.listQueue()
-        ]);
-        document.getElementById('inboundCount').textContent = inb.total || 0;
-        document.getElementById('iqcCount').textContent = iqc.total || 0;
-        document.getElementById('printCount').textContent = (prn.items || []).length;
-        document.getElementById('queueInfo').textContent = queue.length ? `${queue.length} thao tác chưa đồng bộ.` : 'Không có thao tác ngoại tuyến đang chờ.';
-      } catch (err) {
-        WMS_UTILS.toast(err.message, 'error');
-      }
-    }
-    document.getElementById('syncBtn').addEventListener('click', event => WMS_UTILS.run(event.currentTarget, async () => {
-      const result = await WMS_API.syncQueue();
-      WMS_UTILS.toast(`Đã đồng bộ ${result.synced} thao tác`, 'ok');
-      refresh();
-    }));
-    refresh();
-  </script>
-</body>
-</html>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('dashboard.html', 'Tổng quan', 'Tổng quan nhanh các luồng WMS v6');
+U.pageRoot().innerHTML = `
+<div class="grid four">
+  <a class="panel metric" href="./po.html"><div class="label">PO đang mở</div><div class="value" id="poCount">-</div></a>
+  <a class="panel metric" href="./iqc.html"><div class="label">IQC chờ kiểm</div><div class="value" id="iqcCount">-</div></a>
+  <a class="panel metric" href="./request.html"><div class="label">Đơn chờ duyệt</div><div class="value" id="requestCount">-</div></a>
+  <a class="panel metric" href="./outbound.html"><div class="label">Phiếu xuất chờ</div><div class="value" id="issueCount">-</div></a>
+</div>
+<div class="grid two" style="margin-top:14px">
+<section class="panel"><div class="panel-head"><h2>Đồng bộ ngoại tuyến</h2><button class="btn primary" id="syncBtn">Đồng bộ ngay</button></div><div class="panel-body"><p class="muted" id="queueInfo">Đang kiểm tra hàng đợi...</p></div></section>
+<section class="panel"><div class="panel-head"><h2>Điều hướng nhanh</h2></div><div class="panel-body"><div class="grid two"><a class="quick-card" href="./putaway.html"><span>Nhập vị trí</span><strong>IQC_PASS / ORDER_IN</strong></a><a class="quick-card" href="./stocktake.html"><span>Kiểm kê</span><strong>Snapshot / Recount</strong></a><a class="quick-card" href="./print.html"><span>In ấn</span><strong>TSC TX310</strong></a><a class="quick-card" href="../pda/approval.html"><span>PDA</span><strong>Duyệt đơn</strong></a></div></div></section>
+</div>`;
+async function refresh() {
+  try {
+    const [po, iqc, req, iss, queue] = await Promise.all([
+      WMS_API.call('listPO', { status: 'OPEN', limit: 1 }).catch(() => ({ total: 0 })),
+      WMS_API.call('listIQCPending', { limit: 1 }).catch(() => ({ total: 0 })),
+      WMS_API.call('listRequests', { status: 'PENDING_APPROVAL', limit: 1 }).catch(() => ({ total: 0 })),
+      WMS_API.call('listIssuePending', { status: 'ALL', limit: 1 }).catch(() => ({ total: 0 })),
+      WMS_DB.listQueue()
+    ]);
+    poCount.textContent = po.total || 0;
+    iqcCount.textContent = iqc.total || 0;
+    requestCount.textContent = req.total || 0;
+    issueCount.textContent = iss.total || 0;
+    queueInfo.textContent = queue.length ? `${queue.length} thao tác chưa đồng bộ.` : 'Không có thao tác ngoại tuyến đang chờ.';
+  } catch (err) { U.toast(err.message, 'error'); }
+}
+syncBtn.addEventListener('click', event => U.run(event.currentTarget, async () => { const result = await WMS_API.syncQueue(); U.toast(`Đã đồng bộ ${result.synced} thao tác`, 'ok'); refresh(); }));
+refresh();
+</script>
+</body></html>
