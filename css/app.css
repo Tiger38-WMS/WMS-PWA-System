@@ -245,6 +245,29 @@ table { width: 100%; border-collapse: collapse; min-width: 680px; }
 th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; }
 th { background: var(--surface-2); color: #334155; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
 tr:last-child td { border-bottom: none; }
+.excel-table {
+  min-width: 1680px;
+  font-size: 12px;
+}
+.excel-table th,
+.excel-table td {
+  border-right: 1px solid var(--line);
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+.excel-table th:last-child,
+.excel-table td:last-child {
+  border-right: none;
+}
+.excel-table .num,
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.excel-table .note-cell {
+  min-width: 180px;
+  white-space: normal;
+}
 .row-actions { display: flex; gap: 6px; }
 .tabs {
   display: flex;
