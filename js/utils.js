@@ -56,9 +56,9 @@
       icon: 'OUT',
       children: [
         { page: 'outbound.html#pending', label: 'Danh sách phiếu xuất' },
-        { page: 'outbound.html#void', label: 'Hủy phiếu xuất' },
+        { page: 'outbound.html#void', label: 'Hủy phiếu xuất kho' },
         { page: 'outbound.html#history', label: 'Lịch sử xuất kho' },
-        { page: 'outbound.html#print', label: 'In phiếu xuất' },
+        { page: 'outbound.html#print', label: 'In phiếu xuất kho' },
       ],
     },
     {
