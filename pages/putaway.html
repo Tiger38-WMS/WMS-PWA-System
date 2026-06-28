@@ -3,22 +3,23 @@
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
-WMS_UTILS.initAppShell('putaway.html', 'Nhập vị trí', 'Chọn vị trí và xác nhận nhập kho');
-WMS_UTILS.pageRoot().innerHTML = `
+const U = WMS_UTILS;
+U.initAppShell('putaway.html', 'Nhập vị trí', 'Hai luồng IQC_PASS và ORDER_IN, chọn vị trí trước khi nhập kho');
+U.pageRoot().innerHTML = `
 <div class="grid two">
-  <section class="panel"><div class="panel-head"><h2>Cập nhật dòng nhập vị trí</h2></div><div class="panel-body">
-    <form id="lineForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="PutawayNo" required></div><div class="field"><label>Mã dòng</label><input name="LineID" required></div><div class="field"><label>Vị trí nhập</label><input name="ToLocationCode" required></div><div class="field"><label>Trạng thái in</label><select name="PrintStatus"><option value="PENDING">Đang chờ</option><option value="PRINTED">Đã in</option></select></div><div class="field full actions"><button class="btn primary">Lưu vị trí</button></div></form>
-  </div></section>
-  <section class="panel"><div class="panel-head"><h2>Thao tác phiếu</h2></div><div class="panel-body">
-    <form id="actionForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="PutawayNo" required></div><div class="field"><label>Mã kho</label><input name="WarehouseCode" value="WH-MAIN"></div><div class="field full actions"><button class="btn blue" data-action="suggest">Gợi ý vị trí</button><button class="btn primary" data-action="confirmPutaway">Xác nhận nhập vị trí</button><button class="btn danger" data-action="voidPutaway">Hủy phiếu</button></div></form>
-    <div id="suggestions" class="muted"></div>
-  </div></section>
+<section class="panel"><div class="panel-head"><h2>Cập nhật dòng nhập vị trí</h2></div><div class="panel-body"><form id="lineForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="putawayNo" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Số lot</label><input name="lotNo" required></div><div class="field"><label>Vị trí nhập</label><input name="toLocationCode" required></div><div class="field"><label>Số lượng</label><input name="qty" type="number" step="0.001"></div><div class="field full actions"><button class="btn primary">Lưu vị trí</button><button class="btn blue" type="button" id="suggestBtn">Gợi ý vị trí</button></div></form><div id="suggestions" class="muted"></div></div></section>
+<section class="panel"><div class="panel-head"><h2>Thao tác phiếu</h2></div><div class="panel-body"><form id="actionForm" class="form-grid"><div class="field"><label>Số phiếu nhập vị trí</label><input name="putawayNo" required></div><div class="field full actions"><button class="btn primary" data-action="confirmPutaway">Xác nhận nhập kho</button><button class="btn danger" data-action="voidPutaway">Hủy phiếu</button><button class="btn" data-action="getPutaway">Xem chi tiết</button></div></form><div id="detailBox" style="margin-top:14px"></div></div></section>
 </div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu nhập vị trí</h2><button class="btn" id="reloadBtn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>Số phiếu nhập vị trí</th><th>Số phiếu IQC</th><th>Trạng thái</th><th>Người tạo</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
-function load(){ WMS_UTILS.loadTable('listPutaways', { status:'ALL', limit:50 }, document.getElementById('rows'), r => `<tr><td>${WMS_UTILS.escapeHtml(r.putawayNo)}</td><td>${WMS_UTILS.escapeHtml(r.iqcNo)}</td><td>${WMS_UTILS.badge(r.status)}</td><td>${WMS_UTILS.escapeHtml(r.createdBy)}</td></tr>`, 4); }
-document.getElementById('lineForm').addEventListener('submit', e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter, async()=>{ await WMS_API.call('savePutawayLine', d); WMS_UTILS.toast('Đã lưu vị trí', 'ok'); }); });
-document.getElementById('actionForm').addEventListener('submit', e=>e.preventDefault());
-document.getElementById('actionForm').addEventListener('click', e=>{ if(!e.target.dataset.action)return; const d=WMS_UTILS.formData(document.getElementById('actionForm')); WMS_UTILS.run(e.target, async()=>{ if(e.target.dataset.action==='suggest'){ const res=await WMS_API.call('suggestLocation',{warehouseCode:d.WarehouseCode,limit:8}); document.getElementById('suggestions').textContent=(res.items||[]).map(x=>x.LocationCode).join(', ')||'Không có vị trí trống'; } else { await WMS_API.call(e.target.dataset.action,d); WMS_UTILS.toast('Đã xử lý phiếu nhập vị trí','ok'); load(); } }); });
-document.getElementById('reloadBtn').addEventListener('click', load); load();
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu chờ nhập vị trí</h2><button class="btn primary" id="reloadBtn">Tải lại</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Nguồn</label><select id="sourceType"><option>ALL</option><option>IQC_PASS</option><option>ORDER_IN</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
+lineForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('savePutawayLine', U.formData(e.currentTarget)); U.toast('Đã lưu vị trí', 'ok'); load(); }); });
+suggestBtn.addEventListener('click', e => U.run(e.currentTarget, async () => { const d = U.formData(lineForm); const res = await WMS_API.call('suggestLocation', { materialCode: d.materialCode }); suggestions.innerHTML = U.table(['Vị trí','Kho','Trạng thái','Ưu tiên'], (res.suggestions || []).map(x => `<tr><td>${U.escapeHtml(x.locationCode)}</td><td>${U.escapeHtml(x.warehouseCode)}</td><td>${U.badge(x.status)}</td><td>${U.escapeHtml(x.priority)}</td></tr>`), res.note || 'Không có gợi ý'); }));
+actionForm.addEventListener('submit', e => e.preventDefault());
+actionForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { const d = U.formData(actionForm); if (e.target.dataset.action === 'getPutaway') { const data = await WMS_API.call('getPutaway', d); detailBox.innerHTML = U.jsonBlock(data); return; } await WMS_API.call(e.target.dataset.action, d); U.toast('Đã xử lý phiếu nhập vị trí', 'ok'); load(); }); });
+async function load() {
+  const data = await WMS_API.call('listPutawayPending', { sourceType: sourceType.value, search: searchFilter.value, limit: 100 });
+  rows.innerHTML = U.table(['Số phiếu','Nguồn','Số nguồn','Ngày','Trạng thái','Dòng','Đã có vị trí','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.putawayNo)}</td><td>${U.escapeHtml(r.sourceType)}</td><td>${U.escapeHtml(r.sourceNo)}</td><td>${U.escapeHtml(r.putawayDate)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml(r.lineCount)}</td><td>${U.escapeHtml(r.readyCount)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Không có phiếu chờ nhập vị trí');
+}
+reloadBtn.addEventListener('click', () => U.run(reloadBtn, load));
+load();
 </script>
 </body></html>
