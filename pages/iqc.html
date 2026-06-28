@@ -1,26 +1,122 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>IQC | WMS</title></head>
+<html lang="vi">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>IQC | WMS</title></head>
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
 const U = WMS_UTILS;
-U.initAppShell('iqc.html', 'IQC', 'Kiểm phẩm Đạt / Không đạt / Bỏ qua, đóng IQC sẽ tự tạo Putaway');
+U.initAppShell('iqc.html', 'IQC', '');
 U.pageRoot().innerHTML = `
-<div class="grid three" id="metrics"></div>
-<div class="grid two" style="margin-top:14px">
-<section class="panel"><div class="panel-head"><h2>Lưu quyết định IQC</h2></div><div class="panel-body"><form id="decisionForm" class="form-grid"><div class="field"><label>Số phiếu IQC</label><input name="iqcNo" required></div><div class="field"><label>Mã dòng</label><input name="lineId"></div><div class="field"><label>Mã vật tư</label><input name="materialCode"></div><div class="field"><label>Kết luận</label><select name="decision"><option value="PASS">Đạt</option><option value="FAIL">Không đạt</option><option value="SKIP">Bỏ qua</option></select></div><div class="field"><label>SL đạt</label><input name="qtyPass" type="number" step="0.001" value="0"></div><div class="field"><label>SL lỗi</label><input name="qtyFail" type="number" step="0.001" value="0"></div><div class="field"><label>SL bỏ qua</label><input name="qtySkip" type="number" step="0.001" value="0"></div><div class="field full"><label>Ghi chú</label><input name="remark"></div><div class="field full actions"><button class="btn primary">Lưu quyết định</button></div></form></div></section>
-<section class="panel"><div class="panel-head"><h2>Đóng / hủy IQC</h2></div><div class="panel-body"><form id="actionForm" class="form-grid"><div class="field"><label>Số phiếu IQC</label><input name="iqcNo" required></div><div class="field"><label>Lý do hủy</label><input name="reason"></div><div class="field full actions"><button class="btn blue" data-action="closeIQC">Đóng IQC</button><button class="btn danger" data-action="voidIQC">Hủy IQC</button><button class="btn" data-action="getIQC">Xem chi tiết</button></div></form><div id="detailBox" style="margin-top:14px"></div></div></section>
+<section class="panel">
+  <div class="panel-head"><h2>Tổng quan IQC</h2><button class="btn primary" id="reloadBtn">Tải lại</button></div>
+  <div class="panel-body"><div class="grid three" id="metrics"></div></div>
+</section>
+<div class="grid two" style="margin-top:12px">
+  <section class="panel">
+    <div class="panel-head"><h2>Kiểm IQC từ danh sách chờ</h2></div>
+    <div class="panel-body">
+      <form id="decisionForm" class="form-grid">
+        <div class="field"><label>Số phiếu IQC</label><input name="iqcNo" required></div>
+        <div class="field"><label>Mã dòng</label><input name="lineId"></div>
+        <div class="field"><label>Mã vật tư</label><input name="materialCode"></div>
+        <div class="field"><label>Kết luận</label><select name="decision"><option value="PASS">Đạt</option><option value="FAIL">Không đạt</option><option value="SKIP">Bỏ qua</option></select></div>
+        <div class="field"><label>SL đạt</label><input name="qtyPass" type="number" step="0.001" value="0"></div>
+        <div class="field"><label>SL lỗi</label><input name="qtyFail" type="number" step="0.001" value="0"></div>
+        <div class="field"><label>SL bỏ qua</label><input name="qtySkip" type="number" step="0.001" value="0"></div>
+        <div class="field full"><label>Ghi chú</label><input name="remark"></div>
+        <div class="field full actions"><button class="btn primary">Lưu quyết định</button></div>
+      </form>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Đóng / xem chi tiết IQC</h2></div>
+    <div class="panel-body">
+      <form id="actionForm" class="form-grid">
+        <div class="field"><label>Số phiếu IQC</label><input name="iqcNo" required></div>
+        <div class="field"><label>Lý do hủy</label><input name="reason"></div>
+        <div class="field full actions"><button class="btn blue" data-action="closeIQC">Đóng IQC</button><button class="btn danger" data-action="voidIQC">Hủy IQC</button><button class="btn" data-action="getIQC">Xem chi tiết</button></div>
+      </form>
+      <div id="detailBox" style="margin-top:12px"></div>
+    </div>
+  </section>
 </div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu IQC đang chờ</h2><button id="reloadBtn" class="btn primary">Tải lại</button></div><div class="panel-body"><div id="rows"></div></div></section>`;
-decisionForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('saveIQCDecision', U.formData(e.currentTarget)); U.toast('Đã lưu quyết định IQC', 'ok'); load(); }); });
-actionForm.addEventListener('submit', e => e.preventDefault());
-actionForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { const d = U.formData(actionForm); if (e.target.dataset.action === 'getIQC') { const data = await WMS_API.call('getIQC', { iqcNo: d.iqcNo }); detailBox.innerHTML = U.jsonBlock(data); return; } await WMS_API.call(e.target.dataset.action, d); U.toast('Đã xử lý IQC', 'ok'); load(); }); });
-async function load() {
-  const [dash, list] = await Promise.all([WMS_API.call('getIQCDashboard', {}).catch(() => null), WMS_API.call('listIQCPending', { limit: 100 })]);
-  metrics.innerHTML = dash ? Object.keys(dash).slice(0,3).map(k => `<div class="panel metric"><div class="label">${U.escapeHtml(k)}</div><div class="value">${U.escapeHtml(dash[k])}</div></div>`).join('') : '';
-  rows.innerHTML = U.table(['Số IQC','Số nhận','Ngày','Trạng thái','Người kiểm'], (list.items || []).map(r => `<tr><td>${U.escapeHtml(r.iqcNo)}</td><td>${U.escapeHtml(r.ibNo)}</td><td>${U.escapeHtml(r.iqcDate)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml(r.inspectedBy)}</td></tr>`), 'Không có phiếu IQC đang chờ');
+<section class="panel" style="margin-top:12px">
+  <div class="panel-head"><h2>Danh sách chờ IQC</h2></div>
+  <div class="panel-body">
+    <div class="toolbar">
+      <div class="field"><label>Tìm IQC / phiếu nhận</label><input id="searchFilter"></div>
+      <button class="btn primary" id="searchBtn">Tìm kiếm</button>
+    </div>
+    <div id="rows"></div>
+  </div>
+</section>`;
+
+function metric(label, value, note) {
+  return `<div class="panel metric"><div class="label">${U.escapeHtml(label)}</div><div class="value">${U.escapeHtml(value == null ? 0 : value)}</div>${note ? `<div class="muted">${U.escapeHtml(note)}</div>` : ''}</div>`;
 }
+
+function renderMetrics(dash) {
+  if (!dash) {
+    metrics.innerHTML = '';
+    return;
+  }
+  const pending = dash.pending || {};
+  const inProgress = dash.inProgress || {};
+  const closedToday = dash.closedToday || {};
+  metrics.innerHTML = [
+    metric('Chờ kiểm', pending.count || 0, `Quá hạn: ${pending.overdueCount || 0}`),
+    metric('Đang kiểm', inProgress.count || 0, ''),
+    metric('Đã đóng hôm nay', closedToday.count || 0, `Pass rate: ${closedToday.passRate == null ? '-' : closedToday.passRate + '%'}`),
+  ].join('');
+}
+
+function fillFromRow(row) {
+  decisionForm.iqcNo.value = row.iqcNo || '';
+  actionForm.iqcNo.value = row.iqcNo || '';
+}
+
+async function load() {
+  const [dash, list] = await Promise.all([
+    WMS_API.call('getIQCDashboard', {}, { cacheTtlMs: 20000 }).catch(() => null),
+    WMS_API.call('listIQCPending', { search: searchFilter.value, limit: 80 }, { cacheTtlMs: 12000 }),
+  ]);
+  renderMetrics(dash);
+  rows.innerHTML = U.table(
+    ['Số IQC', 'Số nhận', 'Ngày', 'Trạng thái', 'Người kiểm', 'Thao tác'],
+    (list.items || []).map(row => `<tr><td>${U.escapeHtml(row.iqcNo)}</td><td>${U.escapeHtml(row.ibNo)}</td><td>${U.escapeHtml(row.iqcDate)}</td><td>${U.badge(row.status)}</td><td>${U.escapeHtml(row.inspectedBy)}</td><td><button class="btn" data-iqc="${U.escapeHtml(row.iqcNo)}">Chọn kiểm</button></td></tr>`),
+    'Không có phiếu IQC đang chờ'
+  );
+}
+
+decisionForm.addEventListener('submit', event => {
+  event.preventDefault();
+  U.run(event.submitter, async () => {
+    await WMS_API.call('saveIQCDecision', U.formData(event.currentTarget));
+    U.toast('Đã lưu quyết định IQC', 'ok');
+    await load();
+  });
+});
+actionForm.addEventListener('submit', event => event.preventDefault());
+actionForm.addEventListener('click', event => {
+  if (!event.target.dataset.action) return;
+  U.run(event.target, async () => {
+    const data = U.formData(actionForm);
+    if (event.target.dataset.action === 'getIQC') {
+      const detail = await WMS_API.call('getIQC', { iqcNo: data.iqcNo }, { cacheTtlMs: 10000 });
+      detailBox.innerHTML = U.jsonBlock(detail);
+      return;
+    }
+    await WMS_API.call(event.target.dataset.action, data);
+    U.toast('Đã xử lý IQC', 'ok');
+    await load();
+  });
+});
+rows.addEventListener('click', event => {
+  if (!event.target.dataset.iqc) return;
+  fillFromRow({ iqcNo: event.target.dataset.iqc });
+});
 reloadBtn.addEventListener('click', () => U.run(reloadBtn, load));
+searchBtn.addEventListener('click', () => U.run(searchBtn, load));
 load();
 </script>
 </body></html>
