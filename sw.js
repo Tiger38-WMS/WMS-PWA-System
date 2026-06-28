@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wms-pwa-v6';
+const CACHE_NAME = 'wms-pwa-v7';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './pages/request.html',
   './pages/outbound.html',
   './pages/inventory.html',
+  './pages/inventory-history.html',
   './pages/ng.html',
   './pages/location.html',
   './pages/print.html',
