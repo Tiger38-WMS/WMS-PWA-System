@@ -3,16 +3,27 @@
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
-WMS_UTILS.initAppShell('admin.html', 'Quản trị', 'Người dùng, mật khẩu và hàng đợi in');
-WMS_UTILS.pageRoot().innerHTML = `
+const U = WMS_UTILS;
+U.initAppShell('admin.html', 'Quản trị', 'Users, Roles, Suppliers, Departments, Settings và quyền truy cập');
+U.pageRoot().innerHTML = `
 <div class="grid two">
-<section class="panel"><div class="panel-head"><h2>Đặt lại mật khẩu</h2></div><div class="panel-body"><form id="passForm" class="form-grid"><div class="field"><label>Mã người dùng cần đổi</label><input name="targetUserId" required></div><div class="field"><label>Mật khẩu mới</label><input name="newPassword" type="password" required></div><div class="field actions"><button class="btn primary">Đặt mật khẩu</button></div></form></div></section>
-<section class="panel"><div class="panel-head"><h2>Tạo lệnh in</h2></div><div class="panel-body"><form id="printForm" class="form-grid"><div class="field"><label>Loại tài liệu</label><input name="DocType" value="TEST"></div><div class="field"><label>Số tham chiếu</label><input name="RefNo" required></div><div class="field actions"><button class="btn blue">Thêm vào hàng đợi</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Đặt lại mật khẩu</h2></div><div class="panel-body"><form id="passForm" class="form-grid"><div class="field"><label>Mã người dùng cần đổi</label><input name="targetUserId" required></div><div class="field"><label>Mật khẩu mới</label><input name="newPassword" type="password" required></div><div class="field full actions"><button class="btn primary">Đặt mật khẩu</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Thêm / sửa nhà cung cấp</h2></div><div class="panel-body"><form id="supplierForm" class="form-grid"><div class="field"><label>Mã NCC</label><input name="supplierCode" required></div><div class="field"><label>Tên NCC</label><input name="supplierName" required></div><div class="field"><label>Mã số thuế</label><input name="taxCode"></div><div class="field"><label>Trạng thái</label><select name="status"><option>ACTIVE</option><option>INACTIVE</option></select></div><div class="field full actions"><button class="btn primary">Lưu NCC</button></div></form></div></section>
 </div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Hàng đợi in</h2><button class="btn" id="loadPrintBtn">Tải lệnh in</button></div><div class="panel-body table-wrap"><table><thead><tr><th>Mã lệnh</th><th>Loại tài liệu</th><th>Số tham chiếu</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody id="printRows"></tbody></table></div></section>`;
-document.getElementById('passForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ await WMS_API.call('adminSetPassword',d); WMS_UTILS.toast('Đã đặt lại mật khẩu','ok'); e.currentTarget.reset(); }); });
-document.getElementById('printForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ await WMS_API.call('enqueuePrint',d); WMS_UTILS.toast('Đã tạo lệnh in','ok'); loadPrint(); }); });
-function loadPrint(){ WMS_UTILS.loadTable('getPrintJobs',{status:'ALL',limit:50},document.getElementById('printRows'),r=>`<tr><td>${WMS_UTILS.escapeHtml(r.jobId)}</td><td>${WMS_UTILS.escapeHtml(r.docType)}</td><td>${WMS_UTILS.escapeHtml(r.refNo)}</td><td>${WMS_UTILS.badge(r.jobStatus)}</td><td>${WMS_UTILS.escapeHtml(r.createdAt)}</td></tr>`,5); }
-document.getElementById('loadPrintBtn').addEventListener('click',loadPrint); loadPrint();
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Danh mục hệ thống</h2><div><button class="btn" id="rolesBtn">Roles</button><button class="btn" id="usersBtn">Users</button><button class="btn" id="deptBtn">Departments</button><button class="btn primary" id="supplierBtn">Suppliers</button></div></div><div class="panel-body" id="masterBox"></div></section>`;
+passForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('adminSetPassword', U.formData(e.currentTarget)); U.toast('Đã đặt lại mật khẩu', 'ok'); e.currentTarget.reset(); }); });
+supplierForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { await WMS_API.call('saveSupplier', U.formData(e.currentTarget)); U.toast('Đã lưu nhà cung cấp', 'ok'); e.currentTarget.reset(); loadSuppliers(); }); });
+function renderRows(title, items) {
+  masterBox.innerHTML = `<h3>${U.escapeHtml(title)}</h3>` + U.table(Object.keys(items[0] || { info: 'Thông tin' }), (items || []).map(r => `<tr>${Object.keys(items[0] || r).map(k => `<td>${typeof r[k] === 'object' ? U.escapeHtml(JSON.stringify(r[k])) : U.escapeHtml(r[k])}</td>`).join('')}</tr>`), 'Chưa có dữ liệu');
+}
+async function loadUsers(){ const d = await WMS_API.call('getUsers', {}); renderRows('Users', d.items || []); }
+async function loadRoles(){ const d = await WMS_API.call('getRoles', {}); renderRows('Roles', d.items || []); }
+async function loadDepartments(){ const d = await WMS_API.call('getDepartments', {}); renderRows('Departments', d.items || []); }
+async function loadSuppliers(){ const d = await WMS_API.call('getSuppliers', {}); renderRows('Suppliers', d.items || []); }
+usersBtn.addEventListener('click', () => U.run(usersBtn, loadUsers));
+rolesBtn.addEventListener('click', () => U.run(rolesBtn, loadRoles));
+deptBtn.addEventListener('click', () => U.run(deptBtn, loadDepartments));
+supplierBtn.addEventListener('click', () => U.run(supplierBtn, loadSuppliers));
+loadSuppliers();
 </script>
 </body></html>
