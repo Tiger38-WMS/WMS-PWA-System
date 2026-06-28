@@ -1,19 +1,24 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Xuất kho | WMS</title></head>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Xuất kho FIFO | WMS</title></head>
 <body>
 <script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
 <script>
-WMS_UTILS.initAppShell('outbound.html', 'Xuất kho FIFO', 'Phân bổ lot và xác nhận xuất kho');
-WMS_UTILS.pageRoot().innerHTML = `
+const U = WMS_UTILS;
+U.initAppShell('outbound.html', 'Xuất kho FIFO', 'Phiếu xuất sinh từ đơn OUT, chọn vị trí theo FIFO và xác nhận xuất');
+U.pageRoot().innerHTML = `
 <div class="grid two">
-<section class="panel"><div class="panel-head"><h2>Phân bổ từ đơn đã duyệt</h2></div><div class="panel-body"><form id="allocForm" class="form-grid"><div class="field full"><label>Số đơn</label><input name="RequestNo" required></div><div class="field full actions"><button class="btn primary">Phân bổ FIFO</button></div></form></div></section>
-<section class="panel"><div class="panel-head"><h2>Xác nhận phiếu xuất</h2></div><div class="panel-body"><form id="issueForm" class="form-grid"><div class="field full"><label>Số phiếu xuất</label><input name="IssueNo" required></div><div class="field full actions"><button class="btn blue" data-action="confirmIssue">Xác nhận xuất</button><button class="btn danger" data-action="voidIssue">Hủy phiếu</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Tra vị trí theo vật tư</h2></div><div class="panel-body"><form id="locForm" class="form-grid"><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field full actions"><button class="btn primary">Tìm vị trí FIFO</button></div></form><div id="locBox" style="margin-top:14px"></div></div></section>
+<section class="panel"><div class="panel-head"><h2>Xác nhận phiếu xuất</h2></div><div class="panel-body"><form id="issueForm" class="form-grid"><div class="field"><label>Số phiếu xuất</label><input name="issueNo" required></div><div class="field full"><label>Dòng xuất JSON tùy chọn</label><textarea name="linesJson" placeholder='[{"materialCode":"M01","lotNo":"L01","locationCode":"A-01-01-01","qtyIssued":1}]'></textarea></div><div class="field full actions"><button class="btn blue" data-action="confirmIssue">Xác nhận xuất</button><button class="btn danger" data-action="voidIssue">Hủy phiếu</button><button class="btn" data-action="getIssue">Xem chi tiết</button><button class="btn warn" data-action="printIssueSlip">In phiếu xuất</button></div></form><div id="detailBox" style="margin-top:14px"></div></div></section>
 </div>
-<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu xuất</h2><button class="btn" id="reloadBtn">Tải lại</button></div><div class="panel-body table-wrap"><table><thead><tr><th>Số phiếu xuất</th><th>Nguồn</th><th>Trạng thái</th><th>Người tạo</th></tr></thead><tbody id="rows"></tbody></table></div></section>`;
-function load(){ WMS_UTILS.loadTable('listIssues',{status:'ALL',limit:50},document.getElementById('rows'),r=>`<tr><td>${WMS_UTILS.escapeHtml(r.issueNo)}</td><td>${WMS_UTILS.escapeHtml(r.sourceNo)}</td><td>${WMS_UTILS.badge(r.status)}</td><td>${WMS_UTILS.escapeHtml(r.createdBy)}</td></tr>`,4); }
-document.getElementById('allocForm').addEventListener('submit',e=>{ e.preventDefault(); const d=WMS_UTILS.formData(e.currentTarget); WMS_UTILS.run(e.submitter,async()=>{ const res=await WMS_API.call('buildFIFOAllocation',d); WMS_UTILS.toast(`Phiếu xuất: ${res.issueNo}`,'ok'); load(); }); });
-document.getElementById('issueForm').addEventListener('submit',e=>e.preventDefault());
-document.getElementById('issueForm').addEventListener('click',e=>{ if(!e.target.dataset.action)return; const d=WMS_UTILS.formData(document.getElementById('issueForm')); WMS_UTILS.run(e.target,async()=>{ await WMS_API.call(e.target.dataset.action,d); WMS_UTILS.toast('Đã xử lý phiếu xuất','ok'); load(); }); });
-document.getElementById('reloadBtn').addEventListener('click',load); load();
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Phiếu xuất đang chờ</h2><button class="btn primary" id="reloadBtn">Tải lại</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Trạng thái</label><select id="statusFilter"><option>ALL</option><option>PENDING</option><option>ISSUING</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
+locForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const res = await WMS_API.call('getLocationsByMaterial', U.formData(e.currentTarget)); locBox.innerHTML = `<p><strong>Tổng tồn:</strong> ${U.money(res.totalOnHand)}</p>` + U.table(['Lot','Vị trí','Tồn','Ngày SX','Ngày nhận','Hạn dùng'], (res.locations || []).map(l => `<tr><td>${U.escapeHtml(l.lotNo)}</td><td>${U.escapeHtml(l.locationCode)}</td><td>${U.money(l.qtyOnHand)}</td><td>${U.escapeHtml(l.mfgDate)}</td><td>${U.escapeHtml(l.receiveDate)}</td><td>${U.escapeHtml(l.expDate)}</td></tr>`), 'Không có tồn khả dụng'); }); });
+issueForm.addEventListener('submit', e => e.preventDefault());
+issueForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { const d = U.formData(issueForm); if (e.target.dataset.action === 'getIssue') { const data = await WMS_API.call('getIssue', { issueNo: d.issueNo }); detailBox.innerHTML = U.jsonBlock(data); return; } const payload = { issueNo: d.issueNo }; if (e.target.dataset.action === 'confirmIssue' && d.linesJson.trim()) payload.lines = JSON.parse(d.linesJson); await WMS_API.call(e.target.dataset.action, payload); U.toast('Đã xử lý phiếu xuất', 'ok'); load(); }); });
+async function load() {
+  const data = await WMS_API.call('listIssuePending', { status: statusFilter.value, search: searchFilter.value, limit: 100 });
+  rows.innerHTML = U.table(['Số phiếu','Số đơn','Loại đơn','Từ','Đến','Trạng thái','Dòng','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.issueNo)}</td><td>${U.escapeHtml(r.sourceNo)}</td><td>${U.escapeHtml(r.requestType)}</td><td>${U.escapeHtml(r.deptFrom)}</td><td>${U.escapeHtml(r.deptTo)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml(r.lineCount)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Không có phiếu xuất đang chờ');
+}
+reloadBtn.addEventListener('click', () => U.run(reloadBtn, load));
+load();
 </script>
 </body></html>
