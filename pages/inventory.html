@@ -1,21 +1,161 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Tồn kho | WMS</title></head>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Tổng quan tồn kho | WMS</title>
+</head>
 <body>
-<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script src="../config.js"></script>
+<script src="../js/db.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
 <script>
 const U = WMS_UTILS;
-U.initAppShell('inventory.html', 'Tồn kho', '18 cột UI, thêm mã vật tư, tra tồn và lịch sử giao dịch');
+U.initAppShell('inventory.html', 'Tổng quan tồn kho', 'Bảng tồn kho 18 cột, kèm thao tác thêm vật tư');
+
+const columns = [
+  ['Ordinal', 'ordinal'],
+  ['Category', 'category'],
+  ['MaCode_MES', 'maCodeMES'],
+  ['MaterialCode', 'materialCode'],
+  ['ChineseName', 'chineseName'],
+  ['VietnameseName', 'vietnameseName'],
+  ['Vendor', 'vendor'],
+  ['Spec', 'spec'],
+  ['BeginningInventory', 'beginningInventory', 'num'],
+  ['TotalInbound', 'totalInbound', 'num'],
+  ['TotalOutbound', 'totalOutbound', 'num'],
+  ['StockOnHand', 'stockOnHand', 'num'],
+  ['UoM', 'uom'],
+  ['Active', 'active', 'bool'],
+  ['LastInboundDate', 'lastInboundDate'],
+  ['LastOutboundDate', 'lastOutboundDate'],
+  ['Note', 'note', 'note'],
+  ['Source', 'source'],
+];
+
 U.pageRoot().innerHTML = `
-<div class="tabs"><button class="tab-btn active" data-tab="balance">Tồn kho</button><button class="tab-btn" data-tab="material">Thêm vật tư</button><button class="tab-btn" data-tab="history">Lịch sử</button></div>
-<section class="panel" id="tab-balance"><div class="panel-head"><h2>Tra cứu tồn</h2><div><button class="btn" id="recalcBtn">Tính lại tồn</button><button class="btn primary" id="searchBtn">Tìm kiếm</button></div></div><div class="panel-body"><form id="filterForm" class="form-grid"><div class="field"><label>Mã vật tư</label><input name="materialCode"></div><div class="field"><label>Số lot</label><input name="lotNo"></div><div class="field"><label>Mã vị trí</label><input name="locationCode"></div><div class="field"><label>Chế độ</label><select name="mode"><option value="lot">Theo lot</option><option value="onhand">Tổng hợp</option></select></div></form><div id="rows" style="margin-top:14px"></div></div></section>
-<section class="panel hidden" id="tab-material"><div class="panel-head"><h2>Thêm vật tư mới</h2></div><div class="panel-body"><form id="matForm" class="form-grid"><div class="field"><label>Category</label><input name="category" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Tên tiếng Việt</label><input name="vietnameseName"></div><div class="field"><label>Tên tiếng Trung</label><input name="chineseName"></div><div class="field"><label>Nhà cung cấp</label><input name="vendor"></div><div class="field"><label>Quy cách</label><input name="spec"></div><div class="field"><label>Đơn vị tính</label><input name="uom"></div><div class="field"><label>Tồn tối thiểu</label><input name="minQty" type="number"></div><div class="field"><label>Tồn tối đa</label><input name="maxQty" type="number"></div><div class="field"><label>Cần IQC</label><select name="needIQC"><option value="true">Có</option><option value="false">Không</option></select></div><div class="field full actions"><button class="btn primary">Thêm vật tư</button></div></form></div></section>
-<section class="panel hidden" id="tab-history"><div class="panel-head"><h2>Lịch sử giao dịch</h2><button class="btn primary" id="historyBtn">Tải lịch sử</button></div><div class="panel-body"><form id="historyForm" class="form-grid"><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div><div class="field"><label>Đến ngày</label><input name="dateTo" type="date"></div></form><div id="historyRows" style="margin-top:14px"></div></div></section>`;
-document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active')); document.querySelectorAll('[id^="tab-"]').forEach(x => x.classList.add('hidden')); btn.classList.add('active'); document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden'); }));
-async function search() { const d = U.formData(filterForm); const action = d.mode === 'onhand' ? 'getOnHand' : 'getLotBalance'; delete d.mode; d.limit = 200; const data = await WMS_API.call(action, d); rows.innerHTML = action === 'getOnHand' ? U.table(['Vật tư','Vị trí','Tổng SL','Cập nhật'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.materialCode)}</td><td>${U.escapeHtml(r.locationCode)}</td><td>${U.money(r.totalQty)}</td><td>${U.escapeHtml(r.lastUpdated)}</td></tr>`), 'Không có tồn') : U.table(['Vật tư','Lot','Vị trí','SL tồn','MFG','EXP','Nhận','Trạng thái'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.materialCode)}</td><td>${U.escapeHtml(r.lotNo)}</td><td>${U.escapeHtml(r.locationCode)}</td><td>${U.money(r.qtyOnHand)}</td><td>${U.escapeHtml(r.mfgDate)}</td><td>${U.escapeHtml(r.expDate)}</td><td>${U.escapeHtml(r.receiveDate)}</td><td>${U.badge(r.status)}</td></tr>`), 'Không có tồn theo lot'); }
-searchBtn.addEventListener('click', () => U.run(searchBtn, search));
-recalcBtn.addEventListener('click', e => U.run(e.currentTarget, async () => { await WMS_API.call('recalcCache', {}); U.toast('Đã tính lại tồn', 'ok'); search(); }));
-matForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const d = U.formData(e.currentTarget); d.needIQC = d.needIQC === 'true'; await WMS_API.call('addNewMaterial', d); U.toast('Đã thêm vật tư', 'ok'); e.currentTarget.reset(); }); });
-historyBtn.addEventListener('click', e => U.run(e.currentTarget, async () => { const data = await WMS_API.call('getTransactionHistory', U.formData(historyForm)); historyRows.innerHTML = U.table(['Loại','Chứng từ','Từ','Đến','Nhập','Xuất','Lot','Thời gian','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.txnType)}</td><td>${U.escapeHtml(r.refNo)}</td><td>${U.escapeHtml(r.fromLocation)}</td><td>${U.escapeHtml(r.toLocation)}</td><td>${U.money(r.qtyIn)}</td><td>${U.money(r.qtyOut)}</td><td>${U.escapeHtml(r.lotNo)}</td><td>${U.escapeHtml(r.txnTime)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Chưa có lịch sử'); }));
-search();
+<div class="tabs">
+  <button class="tab-btn active" data-tab="overview" type="button">Tổng quan tồn kho</button>
+  <button class="tab-btn" data-tab="material" type="button">Thêm vật tư</button>
+</div>
+<section class="panel">
+  <div id="tab-overview">
+  <div class="panel-head">
+    <h2>Tổng quan tồn kho</h2>
+    <div class="actions">
+      <button class="btn" id="recalcBtn" type="button">Tính lại tồn</button>
+      <button class="btn primary" id="searchBtn" type="button">Tải bảng</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <form id="filterForm" class="form-grid">
+      <div class="field"><label>Tìm mã / tên / nhà cung cấp</label><input name="search" autocomplete="off"></div>
+      <div class="field"><label>Category</label><input name="category" autocomplete="off"></div>
+      <div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div>
+      <div class="field"><label>Đến ngày</label><input name="dateTo" type="date"></div>
+      <div class="field"><label>Trạng thái vật tư</label><select name="activeMode"><option value="active">Đang dùng</option><option value="all">Tất cả</option></select></div>
+      <div class="field"><label>Cảnh báo tồn</label><select name="alertOnly"><option value="">Tất cả</option><option value="1">Chỉ thấp / hết tồn</option></select></div>
+    </form>
+    <div id="summary" class="toolbar muted"></div>
+    <div id="rows"></div>
+  </div>
+</div>
+<div id="tab-material" class="hidden">
+  <div class="panel-head">
+    <h2>Thêm vật tư mới</h2>
+  </div>
+  <div class="panel-body">
+    <form id="matForm" class="form-grid">
+      <div class="field"><label>Category</label><input name="category" required></div>
+      <div class="field"><label>Mã vật tư</label><input name="materialCode" required></div>
+      <div class="field"><label>Tên tiếng Việt</label><input name="vietnameseName"></div>
+      <div class="field"><label>Tên tiếng Trung</label><input name="chineseName"></div>
+      <div class="field"><label>Nhà cung cấp</label><input name="vendor"></div>
+      <div class="field"><label>Quy cách</label><input name="spec"></div>
+      <div class="field"><label>Đơn vị tính</label><input name="uom"></div>
+      <div class="field"><label>Tồn tối thiểu</label><input name="minQty" type="number"></div>
+      <div class="field"><label>Tồn tối đa</label><input name="maxQty" type="number"></div>
+      <div class="field"><label>Cần IQC</label><select name="needIQC"><option value="true">Có</option><option value="false">Không</option></select></div>
+      <div class="field full actions"><button class="btn primary">Thêm vật tư</button></div>
+    </form>
+  </div>
+</div>
+</section>`;
+
+document.querySelectorAll('.tab-btn').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('[id^="tab-"]').forEach(item => item.classList.add('hidden'));
+    button.classList.add('active');
+    document.getElementById('tab-' + button.dataset.tab).classList.remove('hidden');
+  });
+});
+
+function payloadFromFilters() {
+  const data = U.formData(filterForm);
+  return {
+    search: data.search,
+    category: data.category,
+    dateFrom: data.dateFrom,
+    dateTo: data.dateTo,
+    activeOnly: data.activeMode !== 'all',
+    alertOnly: data.alertOnly === '1',
+    limit: 500,
+  };
+}
+
+function renderCell(row, column) {
+  const value = row[column[1]];
+  if (column[2] === 'num') return `<td class="num">${U.money(value)}</td>`;
+  if (column[2] === 'bool') return `<td>${value ? 'TRUE' : 'FALSE'}</td>`;
+  if (column[2] === 'note') return `<td class="note-cell">${U.escapeHtml(value)}</td>`;
+  return `<td>${U.escapeHtml(value)}</td>`;
+}
+
+function render(data) {
+  const items = data.items || [];
+  summary.textContent = `Hiển thị ${items.length} dòng. BeginningInventory, TotalInbound, TotalOutbound và StockOnHand do GAS tính từ Stock_Txn theo kỳ lọc.`;
+  const headers = columns.map(([label]) => `<th>${U.escapeHtml(label)}</th>`).join('');
+  const body = items.length
+    ? items.map(row => `<tr>${columns.map(col => renderCell(row, col)).join('')}</tr>`).join('')
+    : `<tr><td colspan="${columns.length}" class="empty">Chưa có dữ liệu tồn kho</td></tr>`;
+  rows.innerHTML = `<div class="table-wrap"><table class="excel-table"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+async function loadInventory() {
+  rows.innerHTML = `<div class="empty">Đang tải dữ liệu tồn kho...</div>`;
+  const data = await WMS_API.call('getOnHand', payloadFromFilters());
+  render(data);
+}
+
+filterForm.addEventListener('submit', event => {
+  event.preventDefault();
+  U.run(searchBtn, loadInventory);
+});
+searchBtn.addEventListener('click', () => U.run(searchBtn, loadInventory));
+recalcBtn.addEventListener('click', event => U.run(event.currentTarget, async () => {
+  await WMS_API.call('recalcCache', {});
+  U.toast('Đã tính lại tồn kho', 'ok');
+  await loadInventory();
+}));
+matForm.addEventListener('submit', event => {
+  event.preventDefault();
+  U.run(event.submitter, async () => {
+    const data = U.formData(event.currentTarget);
+    data.needIQC = data.needIQC === 'true';
+    await WMS_API.call('addNewMaterial', data);
+    U.toast('Đã thêm vật tư', 'ok');
+    event.currentTarget.reset();
+    await loadInventory();
+  });
+});
+
+loadInventory();
 </script>
-</body></html>
+</body>
+</html>
