@@ -3,22 +3,140 @@
     return window.location.pathname.includes('/pages/') ? '../' : './';
   }
 
-  const navItems = [
-    ['dashboard.html', 'Tổng quan', 'DB'],
-    ['po.html', 'Thu mua', 'PO'],
-    ['inbound.html', 'Nhận hàng', 'IN'],
-    ['iqc.html', 'IQC', 'QC'],
-    ['putaway.html', 'Nhập vị trí', 'PT'],
-    ['request.html', 'Quản lý đơn', 'RQ'],
-    ['outbound.html', 'Xuất kho', 'OUT'],
-    ['inventory.html', 'Tồn kho', 'IV'],
-    ['ng.html', 'Kho NG', 'NG'],
-    ['location.html', 'Vị trí', 'LC'],
-    ['print.html', 'In ấn', 'PR'],
-    ['stocktake.html', 'Kiểm kê', 'ST'],
-    ['report.html', 'Báo cáo', 'RP'],
-    ['admin.html', 'Quản trị', 'AD'],
+  const navTree = [
+    { page: 'dashboard.html', label: 'Tổng quan', icon: 'DB' },
+    {
+      id: 'purchase',
+      label: '2. Thu mua / PO',
+      icon: 'PO',
+      children: [
+        { page: 'po.html#list', label: '2.1 Danh sách PO' },
+        { page: 'po.html#create', label: '2.2 Nhập PO mới' },
+        { page: 'po.html#detail', label: '2.3 Chi tiết PO' },
+        { page: 'po.html#progress', label: '2.4 Theo dõi tiến độ' },
+        { page: 'report.html#purchase', label: '2.5 Báo cáo Thu mua' },
+      ],
+    },
+    {
+      id: 'inbound',
+      label: '3. Quản lý nhập kho',
+      icon: 'IN',
+      children: [
+        { page: 'inbound.html#receive', label: '3.1 Nhận hàng' },
+        { page: 'putaway.html#pending', label: '3.2 Nhập kho (IQC_PASS / ORDER_IN)' },
+        { page: 'putaway.html#history', label: '3.3 Lịch sử nhập kho' },
+        { page: 'print.html#lot-label', label: '3.4 In tem nhập kho' },
+      ],
+    },
+    {
+      id: 'iqc',
+      label: '4. Kiểm tra chất lượng (IQC)',
+      icon: 'QC',
+      children: [
+        { page: 'iqc.html#overview', label: '4.1 Tổng quan IQC' },
+        { page: 'iqc.html#pending', label: '4.2 Danh sách chờ IQC' },
+        { page: 'iqc.html#inspect', label: '4.3 Thực hiện kiểm' },
+        { page: 'iqc.html#history', label: '4.4 Lịch sử IQC' },
+        { page: 'report.html#iqc', label: '4.5 Báo cáo IQC' },
+      ],
+    },
+    {
+      id: 'request',
+      label: '5. Quản lý đơn nhập/xuất',
+      icon: 'RQ',
+      children: [
+        { page: 'request.html#create', label: '5.1 Tạo đơn mới (9 loại, 10 luồng)' },
+        { page: 'request.html#history', label: '5.2 Lịch sử tạo đơn' },
+        { page: 'request.html#approval-log', label: '5.3 Lịch sử phê duyệt' },
+      ],
+    },
+    {
+      id: 'outbound',
+      label: '6. Quản lý xuất kho',
+      icon: 'OUT',
+      children: [
+        { page: 'outbound.html#pending', label: '6.1 Danh sách phiếu xuất' },
+        { page: 'outbound.html#void', label: '6.2 Hủy phiếu xuất' },
+        { page: 'outbound.html#history', label: '6.3 Lịch sử xuất kho' },
+        { page: 'outbound.html#print', label: '6.4 In phiếu xuất' },
+      ],
+    },
+    {
+      id: 'inventory',
+      label: '7. Quản lý tồn kho',
+      icon: 'IV',
+      children: [
+        { page: 'inventory.html#balance', label: '7.1 Tổng quan tồn kho (18 cột UI)' },
+        { page: 'inventory.html#history', label: '7.2 Lịch sử giao dịch' },
+      ],
+    },
+    { page: 'ng.html', label: 'Kho NG', icon: 'NG' },
+    {
+      id: 'location',
+      label: '9. Quản lý vị trí',
+      icon: 'LC',
+      children: [
+        { page: 'location.html#list', label: '9.1 Danh sách vị trí' },
+        { page: 'location.html#edit', label: '9.2 Thêm/Sửa vị trí' },
+        { page: 'location.html#move', label: '9.3 Di chuyển hàng (Move Stock)' },
+        { page: 'location.html#warehouse', label: '9.4 Cấu trúc kho' },
+      ],
+    },
+    { page: 'print.html', label: 'In ấn', icon: 'PR' },
+    {
+      id: 'stocktake',
+      label: '11. Kiểm kê',
+      icon: 'ST',
+      children: [
+        { page: 'stocktake.html#list', label: '11.1 Danh sách đợt' },
+        { page: 'stocktake.html#create', label: '11.2 Tạo đợt' },
+        { page: 'stocktake.html#count', label: '11.3 Thực hiện kiểm kê' },
+        { page: 'stocktake.html#review', label: '11.4 Review & Duyệt' },
+        { page: 'report.html#stocktake', label: '11.5 Báo cáo kiểm kê' },
+      ],
+    },
+    { page: 'report.html', label: 'Báo cáo', icon: 'RP' },
+    { page: 'admin.html', label: 'Quản trị', icon: 'AD' },
   ];
+
+  function pageName(page) {
+    return String(page || '').split('#')[0];
+  }
+
+  function isActivePage(item, activePage) {
+    if (item.page && pageName(item.page) === activePage) return true;
+    return (item.children || []).some(child => pageName(child.page) === activePage);
+  }
+
+  function isActiveChild(children, child, index, activePage) {
+    if (pageName(child.page) !== activePage) return false;
+    const hash = window.location.hash || '';
+    if (hash) return String(child.page || '').endsWith(hash);
+    return children.findIndex(x => pageName(x.page) === activePage) === index;
+  }
+
+  function buildNav(activePage, root) {
+    return navTree.map(item => {
+      if (!item.children) {
+        const active = isActivePage(item, activePage) ? 'active' : '';
+        return `<a class="${active}" href="${root}pages/${item.page}"><span class="nav-ico">${item.icon}</span><span>${item.label}</span></a>`;
+      }
+
+      const open = isActivePage(item, activePage) ? ' open' : '';
+      const childLinks = item.children.map((child, index) => {
+        const active = isActiveChild(item.children, child, index, activePage) ? 'active' : '';
+        return `<a class="nav-child ${active}" href="${root}pages/${child.page}"><span>${child.label}</span></a>`;
+      }).join('');
+
+      return `
+        <div class="nav-group${open}">
+          <button class="nav-parent" type="button" data-nav-group="${item.id}" aria-expanded="${open ? 'true' : 'false'}">
+            <span class="nav-ico">${item.icon}</span><span>${item.label}</span><span class="nav-caret">▾</span>
+          </button>
+          <div class="nav-children">${childLinks}</div>
+        </div>`;
+    }).join('');
+  }
 
   function initAppShell(activePage, title, subtitle) {
     const session = window.WMS_AUTH.requireAuth();
@@ -26,10 +144,7 @@
 
     document.body.classList.add('app-page');
     const root = rootPath();
-    const nav = navItems.map(item => {
-      const active = item[0] === activePage ? 'active' : '';
-      return `<a class="${active}" href="${root}pages/${item[0]}"><span class="nav-ico">${item[2]}</span><span>${item[1]}</span></a>`;
-    }).join('');
+    const nav = buildNav(activePage, root);
 
     document.body.insertAdjacentHTML('afterbegin', `
       <div class="app-shell">
@@ -54,6 +169,13 @@
       <div class="toast-stack" id="toastStack"></div>
     `);
     document.getElementById('logoutBtn').addEventListener('click', () => window.WMS_AUTH.logout());
+    document.querySelectorAll('.nav-parent').forEach(button => {
+      button.addEventListener('click', () => {
+        const group = button.closest('.nav-group');
+        const isOpen = group.classList.toggle('open');
+        button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    });
   }
 
   function pageRoot() {
