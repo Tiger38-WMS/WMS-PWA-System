@@ -100,16 +100,26 @@
     return String(page || '').split('#')[0];
   }
 
+  function pageHash(page) {
+    const parts = String(page || '').split('#');
+    return parts.length > 1 ? '#' + parts.slice(1).join('#') : '';
+  }
+
+  function matchesCurrentPage(page, activePage) {
+    if (!page || pageName(page) !== activePage) return false;
+    const currentHash = window.location.hash || '';
+    const itemHash = pageHash(page);
+    if (currentHash) return itemHash === currentHash;
+    return itemHash === '';
+  }
+
   function isActivePage(item, activePage) {
-    if (item.page && pageName(item.page) === activePage) return true;
-    return (item.children || []).some(child => pageName(child.page) === activePage);
+    if (item.page && matchesCurrentPage(item.page, activePage)) return true;
+    return (item.children || []).some(child => matchesCurrentPage(child.page, activePage));
   }
 
   function isActiveChild(children, child, index, activePage) {
-    if (pageName(child.page) !== activePage) return false;
-    const hash = window.location.hash || '';
-    if (hash) return String(child.page || '').endsWith(hash);
-    return children.findIndex(x => pageName(x.page) === activePage) === index;
+    return matchesCurrentPage(child.page, activePage);
   }
 
   function buildNav(activePage, root) {
