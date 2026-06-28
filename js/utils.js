@@ -5,13 +5,18 @@
 
   const navItems = [
     ['dashboard.html', 'Tổng quan', 'DB'],
+    ['po.html', 'Thu mua', 'PO'],
     ['inbound.html', 'Nhận hàng', 'IN'],
     ['iqc.html', 'IQC', 'QC'],
     ['putaway.html', 'Nhập vị trí', 'PT'],
-    ['request.html', 'Yêu cầu', 'RQ'],
+    ['request.html', 'Quản lý đơn', 'RQ'],
     ['outbound.html', 'Xuất kho', 'OUT'],
     ['inventory.html', 'Tồn kho', 'IV'],
     ['ng.html', 'Kho NG', 'NG'],
+    ['location.html', 'Vị trí', 'LC'],
+    ['print.html', 'In ấn', 'PR'],
+    ['stocktake.html', 'Kiểm kê', 'ST'],
+    ['report.html', 'Báo cáo', 'RP'],
     ['admin.html', 'Quản trị', 'AD'],
   ];
 
@@ -85,23 +90,76 @@
       DEPLETED: 'Hết hàng',
       DONE: 'Hoàn tất',
       DRAFT: 'Nháp',
+      EMPTY: 'Trống',
       ERROR: 'Lỗi',
       FAIL: 'Không đạt',
       IN_PROGRESS: 'Đang xử lý',
+      ISSUING: 'Đang xuất',
+      LOCKED: 'Đã khóa',
+      MATCH: 'Khớp',
+      OCCUPIED: 'Có hàng',
+      OPEN: 'Đang mở',
+      OVER: 'Thừa',
       PASS: 'Đạt',
+      PARTIAL: 'Một phần',
       PENDING: 'Đang chờ',
+      PENDING_APPROVAL: 'Chờ duyệt',
       PRINTED: 'Đã in',
       PRINTING: 'Đang in',
+      RECEIVED: 'Đã nhận',
       REJECTED: 'Từ chối',
       SKIP: 'Bỏ qua',
+      SHORT: 'Thiếu',
       SUBMITTED: 'Đã gửi',
+      UNCOUNTED: 'Chưa đếm',
       VOIDED: 'Đã hủy',
+      CANCELLED: 'Đã hủy',
+      COMPLETED: 'Hoàn thành',
+      BLOCKED: 'Đã khóa',
     };
     let cls = 'badge';
-    if (['APPROVED', 'CONFIRMED', 'CLOSED', 'DONE', 'AVAILABLE', 'PASS', 'PRINTED'].includes(s)) cls += ' ok';
-    if (['PENDING', 'DRAFT', 'SUBMITTED', 'ALLOCATED', 'IN_PROGRESS', 'PRINTING', 'SKIP'].includes(s)) cls += ' warn';
-    if (['VOIDED', 'REJECTED', 'ERROR', 'DEPLETED', 'FAIL'].includes(s)) cls += ' danger';
+    if (['APPROVED', 'CONFIRMED', 'CLOSED', 'DONE', 'AVAILABLE', 'PASS', 'PRINTED', 'COMPLETED', 'RECEIVED', 'MATCH', 'EMPTY'].includes(s)) cls += ' ok';
+    if (['PENDING', 'DRAFT', 'SUBMITTED', 'ALLOCATED', 'IN_PROGRESS', 'PRINTING', 'SKIP', 'PENDING_APPROVAL', 'OPEN', 'PARTIAL', 'ISSUING', 'UNCOUNTED', 'OVER'].includes(s)) cls += ' warn';
+    if (['VOIDED', 'REJECTED', 'ERROR', 'DEPLETED', 'FAIL', 'CANCELLED', 'BLOCKED', 'LOCKED', 'SHORT'].includes(s)) cls += ' danger';
     return `<span class="${cls}">${escapeHtml(labels[s] || s || '-')}</span>`;
+  }
+
+  function field(row, names, fallback) {
+    if (!row) return fallback == null ? '' : fallback;
+    const list = Array.isArray(names) ? names : [names];
+    for (const name of list) {
+      if (row[name] !== undefined && row[name] !== null && row[name] !== '') return row[name];
+    }
+    return fallback == null ? '' : fallback;
+  }
+
+  function money(value) {
+    const n = Number(value || 0);
+    return Number.isFinite(n) ? n.toLocaleString('vi-VN') : escapeHtml(value);
+  }
+
+  function table(headers, rows, emptyText) {
+    const head = headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
+    const body = rows && rows.length
+      ? rows.join('')
+      : `<tr><td colspan="${headers.length}" class="empty">${escapeHtml(emptyText || 'Chưa có dữ liệu')}</td></tr>`;
+    return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  function jsonBlock(value) {
+    return `<pre class="json-block">${escapeHtml(JSON.stringify(value || {}, null, 2))}</pre>`;
+  }
+
+  function fillSelect(select, items, valueKey, labelKey, placeholder) {
+    if (!select) return;
+    const options = [];
+    if (placeholder) options.push(`<option value="">${escapeHtml(placeholder)}</option>`);
+    (items || []).forEach(item => {
+      const value = field(item, valueKey);
+      const label = field(item, labelKey || valueKey) || value;
+      options.push(`<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`);
+    });
+    select.innerHTML = options.join('');
   }
 
   function formData(form) {
@@ -143,6 +201,11 @@
     toast,
     escapeHtml,
     badge,
+    field,
+    money,
+    table,
+    jsonBlock,
+    fillSelect,
     formData,
     run,
     loadTable,
