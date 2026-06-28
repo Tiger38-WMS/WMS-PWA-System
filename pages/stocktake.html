@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>Kiểm kê | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('stocktake.html', 'Kiểm kê', 'Tạo đợt, chụp snapshot, nhập số đếm và duyệt điều chỉnh');
+U.pageRoot().innerHTML = `
+<div class="grid two">
+<section class="panel"><div class="panel-head"><h2>Tạo đợt kiểm kê</h2></div><div class="panel-body"><form id="createForm" class="form-grid"><div class="field"><label>Tên đợt</label><input name="stocktakeName" required></div><div class="field"><label>Category (cách nhau bằng dấu phẩy)</label><input name="categoriesText" required></div><div class="field"><label>Ngày bắt đầu</label><input name="startDate" type="date"></div><div class="field"><label>Hạn hoàn thành</label><input name="deadlineDate" type="date"></div><div class="field full"><label>Ghi chú</label><input name="note"></div><div class="field full actions"><button class="btn primary">Tạo đợt</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Thao tác đợt</h2></div><div class="panel-body"><form id="actionForm" class="form-grid"><div class="field"><label>Số đợt kiểm kê</label><input name="stocktakeNo" required></div><div class="field full actions"><button class="btn blue" data-action="openStocktake">Mở đợt / chụp snapshot</button><button class="btn warn" data-action="closeStocktake">Đóng đợt</button><button class="btn primary" data-action="approveAdjustment">Duyệt điều chỉnh</button><button class="btn danger" data-action="cancelStocktake">Hủy đợt</button></div></form></div></section>
+</div>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Nhập kết quả đếm</h2></div><div class="panel-body"><form id="countForm" class="form-grid"><div class="field"><label>Số đợt</label><input name="stocktakeNo" required></div><div class="field"><label>Mã vật tư</label><input name="materialCode" required></div><div class="field"><label>Số lot</label><input name="lotNo" required></div><div class="field"><label>Vị trí</label><input name="locationCode" required></div><div class="field"><label>SL đếm</label><input name="countedQty" type="number" step="0.001" required></div><div class="field"><label>Ghi chú</label><input name="countNote"></div><div class="field full actions"><button class="btn primary">Lưu số đếm</button></div></form></div></section>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Danh sách đợt</h2><button class="btn primary" id="loadBtn">Tải danh sách</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Trạng thái</label><select id="statusFilter"><option>ALL</option><option>DRAFT</option><option>OPEN</option><option>COUNTING</option><option>REVIEW</option><option>CLOSED</option><option>CANCELLED</option></select></div><div class="field"><label>Tìm kiếm</label><input id="searchFilter"></div></div><div id="rows"></div></div></section>`;
+createForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const d = U.formData(e.currentTarget); d.categories = d.categoriesText.split(',').map(x => x.trim()).filter(Boolean); delete d.categoriesText; const res = await WMS_API.call('createStocktake', d); U.toast('Đã tạo ' + res.stocktakeNo, 'ok'); actionForm.stocktakeNo.value = res.stocktakeNo; e.currentTarget.reset(); load(); }); });
+actionForm.addEventListener('submit', e => e.preventDefault());
+actionForm.addEventListener('click', e => { if (!e.target.dataset.action) return; U.run(e.target, async () => { await WMS_API.call(e.target.dataset.action, { stocktakeNo: actionForm.stocktakeNo.value }); U.toast('Đã xử lý đợt kiểm kê', 'ok'); load(); }); });
+countForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const res = await WMS_API.call('saveStocktakeLine', U.formData(e.currentTarget)); if (res.needConfirm && confirm(res.message)) { const d = U.formData(e.currentTarget); d.recount = true; await WMS_API.call('saveStocktakeLine', d); } U.toast('Đã lưu số đếm', 'ok'); load(); }); });
+async function load() {
+  const data = await WMS_API.call('listStocktake', { status: statusFilter.value, search: searchFilter.value, limit: 100 });
+  rows.innerHTML = U.table(['Số đợt','Tên đợt','Category','Trạng thái','Tiến độ','Ngày bắt đầu','Hạn','Người tạo'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.stocktakeNo)}</td><td>${U.escapeHtml(r.stocktakeName)}</td><td>${U.escapeHtml((r.categories || []).join ? r.categories.join(', ') : r.categories)}</td><td>${U.badge(r.status)}</td><td>${U.escapeHtml((r.counted || 0) + '/' + (r.total || r.lineCount || 0))}</td><td>${U.escapeHtml(r.startDate)}</td><td>${U.escapeHtml(r.deadlineDate)}</td><td>${U.escapeHtml(r.createdBy)}</td></tr>`), 'Chưa có đợt kiểm kê');
+}
+loadBtn.addEventListener('click', () => U.run(loadBtn, load));
+load();
+</script>
+</body></html>
