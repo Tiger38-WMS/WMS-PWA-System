@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="../manifest.json"><link rel="stylesheet" href="../css/app.css"><title>In ấn | WMS</title></head>
+<body>
+<script src="../config.js"></script><script src="../js/db.js"></script><script src="../js/api.js"></script><script src="../js/auth.js"></script><script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('print.html', 'In ấn', 'Hàng đợi in, trạng thái máy in và lệnh in thủ công');
+U.pageRoot().innerHTML = `
+<div class="grid two">
+<section class="panel"><div class="panel-head"><h2>Tạo lệnh in</h2></div><div class="panel-body"><form id="printForm" class="form-grid"><div class="field"><label>Loại tài liệu</label><select name="docType"><option>LOT_LABEL</option><option>ISSUE_SLIP</option><option>IQC_REPORT</option><option>STOCKTAKE</option><option>PO_SLIP</option><option>INBOUND_SLIP</option></select></div><div class="field"><label>Số chứng từ</label><input name="refNo" required></div><div class="field"><label>Tên máy in</label><input name="printerName" placeholder="TSC_TX310"></div><div class="field full actions"><button class="btn primary">Thêm vào hàng đợi</button></div></form></div></section>
+<section class="panel"><div class="panel-head"><h2>Trạng thái máy in</h2><button class="btn blue" id="statusBtn">Kiểm tra</button></div><div class="panel-body"><div id="printerBox" class="muted">Chưa tải trạng thái.</div></div></section>
+</div>
+<section class="panel" style="margin-top:14px"><div class="panel-head"><h2>Hàng đợi in</h2><button class="btn primary" id="loadBtn">Tải danh sách</button></div><div class="panel-body"><div class="toolbar"><div class="field"><label>Trạng thái</label><select id="jobStatus"><option>PENDING</option><option>PRINTING</option><option>DONE</option><option>ERROR</option><option>ALL</option></select></div><div class="field"><label>Loại tài liệu</label><input id="docType"></div></div><div id="rows"></div></div></section>`;
+printForm.addEventListener('submit', e => { e.preventDefault(); U.run(e.submitter, async () => { const res = await WMS_API.call('enqueuePrint', U.formData(e.currentTarget)); U.toast('Đã tạo lệnh in ' + res.jobId, 'ok'); e.currentTarget.reset(); load(); }); });
+statusBtn.addEventListener('click', e => U.run(e.currentTarget, async () => { const data = await WMS_API.call('getPrinterStatus', {}); printerBox.innerHTML = `<div class="grid two"><div class="quick-card"><span>Máy in</span><strong>${U.escapeHtml(data.printerName)}</strong><span>${U.escapeHtml(data.printerIP)}:${U.escapeHtml(data.printerPort)}</span></div><div>${U.jsonBlock(data.stats24h)}</div></div>`; }));
+async function load() {
+  const data = await WMS_API.call('getPrintJobs', { jobStatus: jobStatus.value, docType: docType.value, limit: 100 });
+  rows.innerHTML = U.table(['Mã lệnh','Loại','Chứng từ','Máy in','IP','Trạng thái','Tạo lúc','In lúc'], (data.items || []).map(r => `<tr><td>${U.escapeHtml(r.jobId)}</td><td>${U.escapeHtml(r.docType)}</td><td>${U.escapeHtml(r.refNo)}</td><td>${U.escapeHtml(r.printerName)}</td><td>${U.escapeHtml(r.printerIP)}</td><td>${U.badge(r.jobStatus)}</td><td>${U.escapeHtml(r.createdAt)}</td><td>${U.escapeHtml(r.printedAt)}</td></tr>`), 'Chưa có lệnh in');
+}
+loadBtn.addEventListener('click', () => U.run(loadBtn, load));
+load();
+</script>
+</body></html>
