@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/app.css">
+  <title>Lịch sử giao dịch | WMS</title>
+</head>
+<body>
+<script src="../config.js"></script>
+<script src="../js/db.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+const U = WMS_UTILS;
+U.initAppShell('inventory-history.html', 'Lịch sử giao dịch', 'Tra cứu lịch sử Stock_Txn theo mã vật tư và khoảng thời gian');
+
+U.pageRoot().innerHTML = `
+<section class="panel">
+  <div class="panel-head">
+    <h2>Lịch sử giao dịch</h2>
+    <button class="btn primary" id="historyBtn" type="button">Tải lịch sử</button>
+  </div>
+  <div class="panel-body">
+    <form id="historyForm" class="form-grid">
+      <div class="field"><label>Mã vật tư</label><input name="materialCode" required autocomplete="off"></div>
+      <div class="field"><label>Từ ngày</label><input name="dateFrom" type="date"></div>
+      <div class="field"><label>Đến ngày</label><input name="dateTo" type="date"></div>
+    </form>
+    <div id="historyRows" style="margin-top:14px"></div>
+  </div>
+</section>`;
+
+async function loadHistory() {
+  if (!historyForm.reportValidity()) return;
+  const data = await WMS_API.call('getTransactionHistory', U.formData(historyForm));
+  historyRows.innerHTML = U.table(
+    ['Loại giao dịch', 'Chứng từ', 'Vị trí đi', 'Vị trí đến', 'Nhập', 'Xuất', 'Lot', 'Thời gian', 'Người tạo'],
+    (data.items || []).map(row => `
+      <tr>
+        <td>${U.escapeHtml(row.txnType)}</td>
+        <td>${U.escapeHtml(row.refNo)}</td>
+        <td>${U.escapeHtml(row.fromLocation)}</td>
+        <td>${U.escapeHtml(row.toLocation)}</td>
+        <td class="num">${U.money(row.qtyIn)}</td>
+        <td class="num">${U.money(row.qtyOut)}</td>
+        <td>${U.escapeHtml(row.lotNo)}</td>
+        <td>${U.escapeHtml(row.txnTime)}</td>
+        <td>${U.escapeHtml(row.createdBy)}</td>
+      </tr>`),
+    'Chưa có lịch sử giao dịch'
+  );
+}
+
+historyForm.addEventListener('submit', event => {
+  event.preventDefault();
+  U.run(historyBtn, loadHistory);
+});
+historyBtn.addEventListener('click', event => U.run(event.currentTarget, loadHistory));
+</script>
+</body>
+</html>
